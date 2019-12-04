@@ -27,8 +27,14 @@ import com.alibaba.dubbo.rpc.RpcException;
  */
 public class InvokerWrapper<T> implements Invoker<T> {
 
+    /**
+     * DubboInvoker实例
+     */
     private final Invoker<T> invoker;
 
+    /**
+     * 提供者URL
+     */
     private final URL url;
 
     public InvokerWrapper(Invoker<T> invoker, URL url) {

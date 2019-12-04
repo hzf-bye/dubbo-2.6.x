@@ -42,14 +42,26 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class DubboInvoker<T> extends AbstractInvoker<T> {
 
+    /**
+     * 缓存的是客户端连接
+     * ReferenceCountExchangeClient实例
+     */
     private final ExchangeClient[] clients;
 
     private final AtomicPositiveInteger index = new AtomicPositiveInteger();
 
+    /**
+     * 通常配置文件中指定的dubbo版本号，未指定的话默认0.0.0
+     * <dubbo:service version="1.0"/>
+     */
     private final String version;
 
     private final ReentrantLock destroyLock = new ReentrantLock();
 
+    /**
+     * 缓存对的是在创建此DubboInvoker时，DubboProtocol已经缓存的invokers
+     * com.alibaba.dubbo.rpc.protocol.AbstractProtocol#invokers
+     */
     private final Set<Invoker<?>> invokers;
 
     public DubboInvoker(Class<T> serviceType, URL url, ExchangeClient[] clients) {

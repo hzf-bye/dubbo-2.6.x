@@ -31,27 +31,38 @@ public class DecodeHandler extends AbstractChannelHandlerDelegate {
     private static final Logger log = LoggerFactory.getLogger(DecodeHandler.class);
 
     public DecodeHandler(ChannelHandler handler) {
+        //HeaderExchangeHandler实例
         super(handler);
     }
 
+    /**
+     * 可以看到做了三次判断，根据消息的不同会对消息的不同数据做解码。
+     * 可以看到，这里用到装饰模式后，在处理消息的前面做了解码的处理，
+     * 并且还能继续委托给handler来处理消息，通过组合做到了功能的叠加。
+     */
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
+        // 如果是Decodeable类型的消息，则对整个消息解码
         if (message instanceof Decodeable) {
             decode(message);
         }
 
+        // 如果是Request请求类型消息，则对请求中对请求数据解码
         if (message instanceof Request) {
             decode(((Request) message).getData());
         }
 
+        // 如果是Response返回类型的消息，则对返回消息中对结果进行解码
         if (message instanceof Response) {
             decode(((Response) message).getResult());
         }
 
+        // 继续将消息委托给handler，继续处理
         handler.received(channel, message);
     }
 
     private void decode(Object message) {
+        // 如果消息类型是Decodeable，进一步调用Decodeable的decode来解码
         if (message != null && message instanceof Decodeable) {
             try {
                 ((Decodeable) message).decode();

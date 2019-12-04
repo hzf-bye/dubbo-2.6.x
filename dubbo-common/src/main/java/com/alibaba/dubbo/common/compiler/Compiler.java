@@ -21,6 +21,8 @@ import com.alibaba.dubbo.common.extension.SPI;
 
 /**
  * Compiler. (SPI, Singleton, ThreadSafe)
+ *
+ * 默认值是javassist
  */
 @SPI("javassist")
 public interface Compiler {

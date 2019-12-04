@@ -48,6 +48,20 @@ import static com.alibaba.dubbo.config.spring.util.BeanFactoryUtils.addApplicati
 /**
  * ServiceFactoryBean
  *
+ * dubbo暴露服务有两种情况，一种是设置了延迟暴露（比如delay=”5000”），另外一种是没有设置延迟暴露或者延迟设置为-1（delay=”-1”）：
+ *
+ * 因为spring在初始化过程中时先对实现类了InitializingBean的类的bean的afterPropertiesSet进行回调，再发布ContextRefreshEvent事件
+ * 因此
+ *
+ * 1. 设置了延迟暴露，dubbo在Spring实例化bean（initializeBean）的时候会对实现了InitializingBean的类进行回调，
+ *    回调方法是afterPropertySet()，dubbo在这个方法中进行服务的发布。
+ *
+ * 2. 未设置了延迟暴露或者延迟为-1，dubbo会在Spring实例化完bean之后，在刷新容器最后一步发布ContextRefreshEvent事件的时候，
+ * 通知实现了ApplicationListener的类进行回调onApplicationEvent，dubbo会在这个方法中发布服务。
+ *
+ *
+ * 但是不管延迟与否，都是使用ServiceConfig的export()方法进行服务的暴露。使用export初始化的时候会将Bean对象转换成URL格式，所有Bean属性转换成URL的参数。
+ *
  * @export
  */
 public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean, DisposableBean,
@@ -80,6 +94,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
     public void setApplicationContext(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
         SpringExtensionFactory.addApplicationContext(applicationContext);
+        //supportedApplicationListener为true
         supportedApplicationListener = addApplicationListener(applicationContext, this);
     }
 
@@ -99,10 +114,12 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
+        // 如果服务没有被暴露并且服务没有被取消暴露，则打印日志
         if (isDelay() && !isExported() && !isUnexported()) {
             if (logger.isInfoEnabled()) {
                 logger.info("The service ready on spring started. service: " + getInterface());
             }
+            // 导出
             export();
         }
     }
@@ -243,6 +260,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
                 setPath(beanName);
             }
         }
+        //如果不是延迟暴露则执行export()方法
         if (!isDelay()) {
             export();
         }
@@ -265,6 +283,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
     public void export() {
         super.export();
         // Publish ServiceBeanExportedEvent
+        //该服务发布后，发布该服务的事件
         publishExportEvent();
     }
 

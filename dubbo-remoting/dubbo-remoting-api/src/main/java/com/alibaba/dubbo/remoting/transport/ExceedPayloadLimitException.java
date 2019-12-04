@@ -18,6 +18,9 @@ package com.alibaba.dubbo.remoting.transport;
 
 import java.io.IOException;
 
+/**
+ * 该类是消息长度限制异常
+ */
 public class ExceedPayloadLimitException extends IOException {
     private static final long serialVersionUID = -1112322085391551410L;
 

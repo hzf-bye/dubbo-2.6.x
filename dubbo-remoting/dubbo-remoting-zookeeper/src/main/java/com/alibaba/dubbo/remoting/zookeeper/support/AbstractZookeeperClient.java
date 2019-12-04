@@ -61,7 +61,9 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
         if (i > 0) {
             create(path.substring(0, i), false);
         }
+        //dynamic=false 表示该数据为持久数据，当注册方退出时，数据依然保存在注册中心
         if (ephemeral) {
+            //创建临时的节点
             createEphemeral(path);
         } else {
             createPersistent(path);
@@ -84,6 +86,7 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
 
     @Override
     public List<String> addChildListener(String path, final ChildListener listener) {
+        //对listener做缓存，因为ChildListener是dubbo提供的监听器接口，需要转换为cruator的监听器接口
         ConcurrentMap<ChildListener, TargetChildListener> listeners = childListeners.get(path);
         if (listeners == null) {
             childListeners.putIfAbsent(path, new ConcurrentHashMap<ChildListener, TargetChildListener>());

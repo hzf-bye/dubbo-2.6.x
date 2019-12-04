@@ -21,8 +21,16 @@ import com.alibaba.dubbo.remoting.Channel;
 import com.alibaba.dubbo.remoting.ChannelHandler;
 import com.alibaba.dubbo.remoting.RemotingException;
 
+/**
+ * 该类实现了ChannelHandlerDelegate接口，并且有一个属性是ChannelHandler，
+ * 这是装饰模式中的装饰角色，其中的所有实现方法都直接调用被装饰的handler属性的方法。
+ */
 public abstract class AbstractChannelHandlerDelegate implements ChannelHandlerDelegate {
 
+    /**
+     * 客户端HeaderExchangeHandler或AllChannelHandler或HeartbeatHandler实例
+     * 服务端AllChannelHandler实例
+     */
     protected ChannelHandler handler;
 
     protected AbstractChannelHandlerDelegate(ChannelHandler handler) {

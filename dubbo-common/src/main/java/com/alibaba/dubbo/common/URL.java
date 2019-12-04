@@ -72,20 +72,37 @@ public final class URL implements Serializable {
 
     private static final long serialVersionUID = -1985165475234910535L;
 
+    /**
+     * 协议名
+     */
     private final String protocol;
 
+    /**
+     * 用户名
+     */
     private final String username;
 
+    /**
+     * 密码
+     */
     private final String password;
 
     // by default, host to registry
+    //地址
     private final String host;
 
     // by default, port to registry
+    //端口
     private final int port;
 
+    /**
+     * 路径（服务名）
+     */
     private final String path;
 
+    /**
+     * 参数集合
+     */
     private final Map<String, String> parameters;
 
     // ==== cache ====
@@ -175,6 +192,7 @@ public final class URL implements Serializable {
      * @param url URL string
      * @return URL instance
      * @see URL
+     * 例如url为 dubbo://192.168.0.105:20880/com.alibaba.dubbo.samples.echo.api.EchoService?anyhost=true&application=echo-provider&dubbo=2.0.2&generic=false&interface=com.alibaba.dubbo.samples.echo.api.EchoService&methods=echo&pid=4835&side=provider&timestamp=1572684815739
      */
     public static URL valueOf(String url) {
         if (url == null || (url = url.trim()).length() == 0) {
@@ -207,7 +225,9 @@ public final class URL implements Serializable {
         i = url.indexOf("://");
         if (i >= 0) {
             if (i == 0) throw new IllegalStateException("url missing protocol: \"" + url + "\"");
+            //protocol为dubbo
             protocol = url.substring(0, i);
+            //url为192.168.0.105:20880/com.alibaba.dubbo.samples.echo.api.EchoService?anyhost=true&application=echo-provider&dubbo=2.0.2&generic=false&interface=com.alibaba.dubbo.samples.echo.api.EchoService&methods=echo&pid=4835&side=provider&timestamp=1572684815739
             url = url.substring(i + 3);
         } else {
             // case: file:/path/to/file.txt
@@ -219,9 +239,12 @@ public final class URL implements Serializable {
             }
         }
 
+
         i = url.indexOf("/");
         if (i >= 0) {
+            //path为com.alibaba.dubbo.samples.echo.api.EchoService?anyhost=true&application=echo-provider&dubbo=2.0.2&generic=false&interface=com.alibaba.dubbo.samples.echo.api.EchoService&methods=echo&pid=4835&side=provider&timestamp=1572684815739
             path = url.substring(i + 1);
+            //url为192.168.0.105:20880
             url = url.substring(0, i);
         }
         i = url.lastIndexOf("@");
@@ -229,6 +252,7 @@ public final class URL implements Serializable {
             username = url.substring(0, i);
             int j = username.indexOf(":");
             if (j >= 0) {
+                //获取用户名密码
                 password = username.substring(j + 1);
                 username = username.substring(0, j);
             }
@@ -236,9 +260,12 @@ public final class URL implements Serializable {
         }
         i = url.indexOf(":");
         if (i >= 0 && i < url.length() - 1) {
+            //port为20880
             port = Integer.parseInt(url.substring(i + 1));
+            //url为192.168.0.105
             url = url.substring(0, i);
         }
+        //host为192.168.0.105
         if (url.length() > 0) host = url;
         return new URL(protocol, username, password, host, port, path, parameters);
     }

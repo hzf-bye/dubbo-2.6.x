@@ -17,8 +17,16 @@
 
 package com.alibaba.dubbo.remoting;
 
+/**
+ * 该接口是可解码的接口，该接口有两个作用：
+ * 第一个是在调用真正的decode方法实现的时候会有一些校验，判断是否可以解码，并且对解码失败会有一些消息设置；
+ * 第二个是被用来message核对用的。后面看具体的实现会更了解该接口的作用。
+ */
 public interface Decodeable {
 
+    /**
+     * 解码
+     */
     void decode() throws Exception;
 
 }

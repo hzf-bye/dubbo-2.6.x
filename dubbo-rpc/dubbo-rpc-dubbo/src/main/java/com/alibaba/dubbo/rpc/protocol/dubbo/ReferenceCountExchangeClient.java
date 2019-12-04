@@ -40,6 +40,10 @@ final class ReferenceCountExchangeClient implements ExchangeClient {
 
     //    private final ExchangeHandler handler;
     private final ConcurrentMap<String, LazyConnectExchangeClient> ghostClientMap;
+
+    /**
+     * HeaderExchangeClient实例
+     */
     private ExchangeClient client;
 
 

@@ -70,6 +70,8 @@ public class RegistryConfig extends AbstractConfig {
     // wait time before stop
     private Integer wait;
 
+    private Integer retryPeriod;
+
     // whether to check if register center is available when boot up
     private Boolean check;
 
@@ -238,6 +240,14 @@ public class RegistryConfig extends AbstractConfig {
             throw new IllegalStateException("No such client type : " + client);
         }*/
         this.client = client;
+    }
+
+    public Integer getRetryPeriod() {
+        return retryPeriod;
+    }
+
+    public void setRetryPeriod(Integer retryPeriod) {
+        this.retryPeriod = retryPeriod;
     }
 
     public Integer getTimeout() {

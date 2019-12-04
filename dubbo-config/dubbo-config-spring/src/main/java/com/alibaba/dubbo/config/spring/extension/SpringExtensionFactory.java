@@ -38,12 +38,22 @@ import java.util.Set;
 public class SpringExtensionFactory implements ExtensionFactory {
     private static final Logger logger = LoggerFactory.getLogger(SpringExtensionFactory.class);
 
+    /**
+     * Set集合保存spring上下文
+     */
     private static final Set<ApplicationContext> contexts = new ConcurrentHashSet<ApplicationContext>();
 
     private static final ApplicationListener shutdownHookListener = new ShutdownHookListener();
 
+    /**
+     * ReferenceBean和ServiceBean中的setApplicationContext方法会调用此方法
+     * 说明一个服务被发布或者被引用的时候，对应的spring上下文会被保存下来。
+     *
+     * @param context
+     */
     public static void addApplicationContext(ApplicationContext context) {
         contexts.add(context);
+        //添加监听器值ApplicationContext，监听ContextClosedEvent事件
         BeanFactoryUtils.addApplicationListener(context, shutdownHookListener);
     }
 
@@ -63,7 +73,9 @@ public class SpringExtensionFactory implements ExtensionFactory {
     @Override
     @SuppressWarnings("unchecked")
     public <T> T getExtension(Class<T> type, String name) {
+        //遍历所有ApplicationContext
         for (ApplicationContext context : contexts) {
+            //先根据名字在spring容器中找对应的bean
             if (context.containsBean(name)) {
                 Object bean = context.getBean(name);
                 if (type.isInstance(bean)) {
@@ -80,6 +92,7 @@ public class SpringExtensionFactory implements ExtensionFactory {
 
         for (ApplicationContext context : contexts) {
             try {
+                //如果beanName没找到则通过类型查找
                 return context.getBean(type);
             } catch (NoUniqueBeanDefinitionException multiBeanExe) {
                 logger.warn("Find more than 1 spring extensions (beans) of type " + type.getName() + ", will stop auto injection. Please make sure you have specified the concrete parameter type and there's only one extension of that type.");

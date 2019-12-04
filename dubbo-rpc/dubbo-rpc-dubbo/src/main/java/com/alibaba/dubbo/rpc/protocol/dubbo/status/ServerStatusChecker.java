@@ -26,6 +26,7 @@ import java.util.Collection;
 
 /**
  * ServerStatusChecker
+ * dubbo服务暴露检查
  */
 @Activate
 public class ServerStatusChecker implements StatusChecker {

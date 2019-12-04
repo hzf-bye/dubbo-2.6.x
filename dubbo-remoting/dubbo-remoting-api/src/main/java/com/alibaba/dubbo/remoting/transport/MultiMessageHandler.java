@@ -28,18 +28,21 @@ import com.alibaba.dubbo.remoting.exchange.support.MultiMessage;
 public class MultiMessageHandler extends AbstractChannelHandlerDelegate {
 
     public MultiMessageHandler(ChannelHandler handler) {
+        //HeartbeatHandler实例
         super(handler);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
+        // 当消息为多消息时 循环交给handler处理接收到当消息
         if (message instanceof MultiMessage) {
             MultiMessage list = (MultiMessage) message;
             for (Object obj : list) {
                 handler.received(channel, obj);
             }
         } else {
+            // 如果是单消息，就直接交给handler处理器
             handler.received(channel, message);
         }
     }

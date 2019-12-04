@@ -22,8 +22,19 @@ import java.io.InputStream;
 
 public class ChannelBufferInputStream extends InputStream {
 
+    /**
+     * 缓冲区
+     */
     private final ChannelBuffer buffer;
+
+    /**
+     * 记录开始读数据的索引
+     */
     private final int startIndex;
+
+    /**
+     * 结束读数据的索引
+     */
     private final int endIndex;
 
     public ChannelBufferInputStream(ChannelBuffer buffer) {
@@ -42,15 +53,24 @@ public class ChannelBufferInputStream extends InputStream {
         }
 
         this.buffer = buffer;
+        // 记录开始读数据的索引
         startIndex = buffer.readerIndex();
+        // 设置结束读数据的索引
         endIndex = startIndex + length;
+        // 标记读索引
         buffer.markReaderIndex();
     }
 
+    /**
+     * 该方法是返回读了多少数据。
+     */
     public int readBytes() {
         return buffer.readerIndex() - startIndex;
     }
 
+    /**
+     * 该方法是返回还剩多少数据没读
+     */
     @Override
     public int available() throws IOException {
         return endIndex - buffer.readerIndex();
@@ -66,6 +86,11 @@ public class ChannelBufferInputStream extends InputStream {
         return true;
     }
 
+    /**
+     * 该方法是读一个字节数据，并但会此字节对应的整数
+     * @return
+     * @throws IOException
+     */
     @Override
     public int read() throws IOException {
         if (!buffer.readable()) {
@@ -74,6 +99,9 @@ public class ChannelBufferInputStream extends InputStream {
         return buffer.readByte() & 0xff;
     }
 
+    /**
+     * 该方法是读数据，返回读了数据长度。
+     */
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         int available = available();
@@ -100,8 +128,12 @@ public class ChannelBufferInputStream extends InputStream {
         }
     }
 
+    /**
+     * 该方法是跳过n长度来读数据。
+     */
     private int skipBytes(int n) throws IOException {
         int nBytes = Math.min(available(), n);
+        // 跳过一些数据
         buffer.skipBytes(nBytes);
         return nBytes;
     }

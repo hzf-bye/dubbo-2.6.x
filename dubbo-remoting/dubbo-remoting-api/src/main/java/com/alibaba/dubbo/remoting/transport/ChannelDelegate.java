@@ -25,6 +25,7 @@ import java.net.InetSocketAddress;
 
 /**
  * ChannelDelegate
+ * 作为装饰模式中的装饰角色，所以类中的所有实现方法都调用了属性channel的方法
  */
 public class ChannelDelegate implements Channel {
 

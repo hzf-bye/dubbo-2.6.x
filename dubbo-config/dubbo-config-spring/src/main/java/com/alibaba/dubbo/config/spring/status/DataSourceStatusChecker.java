@@ -33,6 +33,7 @@ import java.util.Map;
 
 /**
  * DataSourceStatusChecker
+ * 数据库状态检查
  */
 @Activate
 public class DataSourceStatusChecker implements StatusChecker {

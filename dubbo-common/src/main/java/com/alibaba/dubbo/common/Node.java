@@ -22,6 +22,8 @@ package com.alibaba.dubbo.common;
 public interface Node {
 
     /**
+     *
+     * 用于获取当前组件的url配置
      * get url.
      *
      * @return url.
@@ -29,6 +31,8 @@ public interface Node {
     URL getUrl();
 
     /**
+     *
+     * 检测组件是否可用
      * is available.
      *
      * @return available.
@@ -36,6 +40,8 @@ public interface Node {
     boolean isAvailable();
 
     /**
+     *
+     * 用于销毁组件
      * destroy.
      */
     void destroy();

@@ -39,8 +39,22 @@ import java.util.Map;
 
 /**
  * ReferenceFactoryBean
+ * 服务消费者端对应的是ReferenceBean，
+ * 实现了ApplicationContextAware接口，Spring会在Bean的实例化那一步回调setApplicationContext方法。
+ * 也实现了InitializingBean接口，接着会回调afterPropertySet方法。
+ * 还实现了FactoryBean接口，实现FactoryBean在获取bean时会调用getObject方法，dubbo在这个时候做初始化。
+ * 另外ReferenceBean还实现了DisposableBean，会在bean销毁的时候调用destory方法。
  *
- * @export
+ *
+ * 消费者的初始化是在ReferenceBean的init方法中执行，分为两种情况：
+ *
+ * 1. reference标签中没有配置init属性，此时是延迟初始化的，
+ *  也就是只有等到bean引用被注入到其他Bean中，或者调用getBean获取这个Bean的时候，才会初始化。
+ *  比如在这里的例子里reference没有配置init属性，只有等到HelloService helloService = (HelloService) applicationContext.getBean("helloService");这句getBean的时候，
+ *  才会开始调用init方法进行初始化。因为在getBean时，判断ReferenceBean是FactoryBean类型的bean，那么会调用getObject方法
+ *  这种也是默认的方式
+ * 2.另外一种情况是立即初始化，即是如果reference标签中init属性配置为true，
+ *  会立即进行初始化，也就是在afterPropertiesSet 方法时引用服务。
  */
 public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean, ApplicationContextAware, InitializingBean, DisposableBean {
 
@@ -169,6 +183,7 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
                 }
             }
         }
+        //如果有配置init属性为true，那么在初始化bean时就引用服务
         Boolean b = isInit();
         if (b == null && getConsumer() != null) {
             b = getConsumer().isInit();

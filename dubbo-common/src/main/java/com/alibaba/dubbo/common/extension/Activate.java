@@ -35,6 +35,9 @@ import java.lang.annotation.Target;
  * SPI provider can call {@link ExtensionLoader#getActivateExtension(URL, String, String)} to find out all activated
  * extensions with the given criteria.
  *
+ *
+ * 如果直接使用Activate注解，未指定任何属性，则表示无条件激活。
+ *
  * @see SPI
  * @see URL
  * @see ExtensionLoader
@@ -49,6 +52,10 @@ public @interface Activate {
      *
      * @return group names to match
      * @see ExtensionLoader#getActivateExtension(URL, String, String)
+     *
+     * URL中的分组如果匹配则激活，可以设置多个
+     * 如果group = "provider"只对提供方激活，
+     * group可选"provider"或"consumer"
      */
     String[] group() default {};
 
@@ -62,6 +69,7 @@ public @interface Activate {
      * @return URL parameter keys
      * @see ExtensionLoader#getActivateExtension(URL, String)
      * @see ExtensionLoader#getActivateExtension(URL, String, String)
+     * 查找url中如果包含该key，则激活
      */
     String[] value() default {};
 
@@ -69,6 +77,7 @@ public @interface Activate {
      * Relative ordering info, optional
      *
      * @return extension list which should be put before the current one
+     * 填写扩展点信息，标识哪些扩展点要在本扩展点之前
      */
     String[] before() default {};
 
@@ -76,6 +85,7 @@ public @interface Activate {
      * Relative ordering info, optional
      *
      * @return extension list which should be put after the current one
+     * 填写扩展点信息，标识哪些扩展点要在本扩展点之后
      */
     String[] after() default {};
 
@@ -83,6 +93,7 @@ public @interface Activate {
      * Absolute ordering info, optional
      *
      * @return absolute ordering info
+     * 直接排序的信息
      */
     int order() default 0;
 }

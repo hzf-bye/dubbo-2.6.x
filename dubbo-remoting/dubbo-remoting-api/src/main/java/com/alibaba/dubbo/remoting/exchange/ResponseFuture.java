@@ -20,6 +20,9 @@ import com.alibaba.dubbo.remoting.RemotingException;
 
 /**
  * Future. (API/SPI, Prototype, ThreadSafe)
+ * 该接口是响应future接口，该接口的设计意图跟java.util.concurrent.Future很类似。
+ * 发送出去的消息，泼出去的水，只有等到对方主动响应才能得到结果，但是请求方需要去主动回去该请求的结果，就显得有些艰难，
+ * 所有产生了这样一个接口，它能够获取任务执行结果、可以核对请求消息是否被响应，还能设置回调来支持异步。
  *
  * @see com.alibaba.dubbo.remoting.exchange.ExchangeChannel#request(Object)
  * @see com.alibaba.dubbo.remoting.exchange.ExchangeChannel#request(Object, int)

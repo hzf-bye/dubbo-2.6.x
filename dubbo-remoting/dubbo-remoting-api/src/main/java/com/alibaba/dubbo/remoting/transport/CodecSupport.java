@@ -34,12 +34,24 @@ import java.util.Set;
 public class CodecSupport {
 
     private static final Logger logger = LoggerFactory.getLogger(CodecSupport.class);
+    /**
+     * 序列化对象集合 key为序列化类型编号
+     */
     private static Map<Byte, Serialization> ID_SERIALIZATION_MAP = new HashMap<Byte, Serialization>();
+
+    /**
+     * 序列化扩展名集合 key为序列化类型编号 value为序列化扩展名
+     */
     private static Map<Byte, String> ID_SERIALIZATIONNAME_MAP = new HashMap<Byte, String>();
 
+    /**
+     * 可以看到该类中缓存了所有的序列化对象和序列化扩展名。可以从中拿到Serialization。
+     */
     static {
+        // 利用dubbo 的SPI机制获得序列化扩展名
         Set<String> supportedExtensions = ExtensionLoader.getExtensionLoader(Serialization.class).getSupportedExtensions();
         for (String name : supportedExtensions) {
+            // 获得相应扩展名的序列化实现
             Serialization serialization = ExtensionLoader.getExtensionLoader(Serialization.class).getExtension(name);
             byte idByte = serialization.getContentTypeId();
             if (ID_SERIALIZATION_MAP.containsKey(idByte)) {
@@ -49,7 +61,9 @@ public class CodecSupport {
                         + ", ignore this Serialization extension");
                 continue;
             }
+            // 缓存序列化实现
             ID_SERIALIZATION_MAP.put(idByte, serialization);
+            // 缓存序列化编号和扩展名
             ID_SERIALIZATIONNAME_MAP.put(idByte, name);
         }
     }

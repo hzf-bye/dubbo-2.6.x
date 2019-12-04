@@ -17,28 +17,43 @@
 package com.alibaba.dubbo.demo.consumer;
 
 import com.alibaba.dubbo.demo.DemoService;
+import com.alibaba.dubbo.samples.echo.api.EchoService;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class Consumer {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         //Prevent to get IPV6 address,this way only work in debug mode
         //But you can pass use -Djava.net.preferIPv4Stack=true,then it work well whether in debug mode or not
         System.setProperty("java.net.preferIPv4Stack", "true");
+        System.setProperty("dubbo.registry.retry.period", "111111");
         ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[]{"META-INF/spring/dubbo-demo-consumer.xml"});
         context.start();
-        DemoService demoService = (DemoService) context.getBean("demoService"); // get remote service proxy
+//        DemoService demoService = (DemoService) context.getBean("demoService"); // get remote service proxy
+//        String hello = demoService.sayHello("world"); // call remote method
+//        System.out.println(System.in.read());
 
-        while (true) {
-            try {
-                Thread.sleep(1000);
-                String hello = demoService.sayHello("world"); // call remote method
-                System.out.println(hello); // get result
+        EchoService echoService = (EchoService) context.getBean("echoService");
 
-            } catch (Throwable throwable) {
-                throwable.printStackTrace();
-            }
-        }
+        String message = echoService.echo("hello world"); // call remote method
+        System.out.println(message);
+        System.out.println(System.in.read());
+
 
     }
+
+
+
+
+//        while (true) {
+//            try {
+////                Thread.sleep(1000);
+//                String hello = demoService.sayHello("world"); // call remote method
+//                System.out.println(hello); // get result
+//
+//            } catch (Throwable throwable) {
+//                throwable.printStackTrace();
+//            }
+//        }
+
 }

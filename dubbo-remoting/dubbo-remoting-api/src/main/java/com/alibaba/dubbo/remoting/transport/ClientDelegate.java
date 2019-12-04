@@ -25,6 +25,7 @@ import java.net.InetSocketAddress;
 
 /**
  * ClientDelegate
+ * 作为装饰模式中的装饰角色，所以类中的所有实现方法都调用了属性client的方法
  */
 public class ClientDelegate implements Client {
 

@@ -28,12 +28,22 @@ import io.netty.channel.ChannelPromise;
 
 /**
  * NettyClientHandler
+ * 该类继承了ChannelDuplexHandler，是基于netty4实现的客户端通道处理实现类。
+ * 这里的设计与netty3实现的通道处理器有所不同，netty3实现的通道处理器是被客户端和服务端统一使用的，
+ * 而在这里服务端和客户端使用了两个不同的Handler来处理。
+ * 并且netty3的NettyHandler是基于netty3的SimpleChannelHandler设计的，而这里是基于netty4的ChannelDuplexHandler。
  */
 @io.netty.channel.ChannelHandler.Sharable
 public class NettyClientHandler extends ChannelDuplexHandler {
 
+    /**
+     * url对象
+     */
     private final URL url;
 
+    /**
+     * NettyClient实例
+     */
     private final ChannelHandler handler;
 
     public NettyClientHandler(URL url, ChannelHandler handler) {
@@ -61,10 +71,13 @@ public class NettyClientHandler extends ChannelDuplexHandler {
     @Override
     public void disconnect(ChannelHandlerContext ctx, ChannelPromise future)
             throws Exception {
+        // 获得通道
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);
         try {
+            // 断开连接
             handler.disconnected(channel);
         } finally {
+            // 从集合中移除
             NettyChannel.removeChannelIfDisconnected(ctx.channel());
         }
     }

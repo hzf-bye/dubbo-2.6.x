@@ -35,10 +35,19 @@ import java.util.concurrent.ConcurrentHashMap;
 @io.netty.channel.ChannelHandler.Sharable
 public class NettyServerHandler extends ChannelDuplexHandler {
 
-    private final Map<String, Channel> channels = new ConcurrentHashMap<String, Channel>(); // <ip:port, channel>
+    /**
+     * 连接该服务器的通道数 key为ip:port
+     */
+    private final Map<String, Channel> channels = new ConcurrentHashMap<String, Channel>();
 
+    /**
+     * url对象
+     */
     private final URL url;
 
+    /**
+     * 通道处理器
+     */
     private final ChannelHandler handler;
 
     public NettyServerHandler(URL url, ChannelHandler handler) {
@@ -58,15 +67,20 @@ public class NettyServerHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        // 激活事件
         ctx.fireChannelActive();
 
+        // 获得通道
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.channel(), url, handler);
         try {
+            // 如果通道不为空，则加入集合中
             if (channel != null) {
                 channels.put(NetUtils.toAddressString((InetSocketAddress) ctx.channel().remoteAddress()), channel);
             }
+            // 连接该通道
             handler.connected(channel);
         } finally {
+            // 如果通道不活跃，则移除通道
             NettyChannel.removeChannelIfDisconnected(ctx.channel());
         }
     }

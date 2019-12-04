@@ -25,11 +25,26 @@ import com.alibaba.dubbo.common.extension.SPI;
  */
 public class SpiExtensionFactory implements ExtensionFactory {
 
+    /**
+     * 拿type为ExtensionFactory.class举例
+     * @param type object type.
+     * @param name object name.
+     * @param <T>
+     * @return
+     */
     @Override
     public <T> T getExtension(Class<T> type, String name) {
+        //必须是接口且有spi注解
         if (type.isInterface() && type.isAnnotationPresent(SPI.class)) {
             ExtensionLoader<T> loader = ExtensionLoader.getExtensionLoader(type);
+            //如果缓存的扩展点不空，则直接返回Adaptive实例
             if (!loader.getSupportedExtensions().isEmpty()) {
+                /*
+                 * 其实这里返回的实例还是AdaptiveExtensionFactory，因为AdaptiveExtensionFactory
+                 * 中有@Adaptive注解，
+                 * 因此AdaptiveExtensionFactory的实例早已经被缓存ExtensionFactory
+                 * 对应的ExtensionLoader实例的cachedAdaptiveInstance属性中
+                 */
                 return loader.getAdaptiveExtension();
             }
         }

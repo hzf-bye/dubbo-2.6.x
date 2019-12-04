@@ -38,9 +38,16 @@ public abstract class AbstractProtocol implements Protocol {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    /**
+     * key com.alibaba.dubbo.rpc.protocol.AbstractProtocol#serviceKey(com.alibaba.dubbo.common.URL)
+     * value DubboExporter
+     */
     protected final Map<String, Exporter<?>> exporterMap = new ConcurrentHashMap<String, Exporter<?>>();
 
     //TODO SOFEREFENCE
+    /**
+     * 缓存所有提供者对应的Invoker
+     */
     protected final Set<Invoker<?>> invokers = new ConcurrentHashSet<Invoker<?>>();
 
     protected static String serviceKey(URL url) {

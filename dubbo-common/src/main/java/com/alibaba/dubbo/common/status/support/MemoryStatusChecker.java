@@ -22,6 +22,7 @@ import com.alibaba.dubbo.common.status.StatusChecker;
 
 /**
  * MemoryStatus
+ * JVM内存检查
  */
 @Activate
 public class MemoryStatusChecker implements StatusChecker {

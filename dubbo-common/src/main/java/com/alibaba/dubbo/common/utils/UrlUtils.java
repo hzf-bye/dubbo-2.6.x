@@ -27,6 +27,14 @@ import java.util.Set;
 
 public class UrlUtils {
 
+
+    /**
+     * 解析注册中心url
+     * 例如 address为zookeeper://10.0.1.3:2181?backup=10.0.1.4:2181
+     * @param address
+     * @param defaults
+     * @return
+     */
     public static URL parseURL(String address, Map<String, String> defaults) {
         if (address == null || address.length() == 0) {
             return null;
@@ -48,12 +56,15 @@ public class UrlUtils {
                 url += "?" + Constants.BACKUP_KEY + "=" + backup.toString();
             }
         }
+        //默认协议为dubbo
         String defaultProtocol = defaults == null ? null : defaults.get("protocol");
         if (defaultProtocol == null || defaultProtocol.length() == 0) {
             defaultProtocol = "dubbo";
         }
+        //注册中心用户名以及密码
         String defaultUsername = defaults == null ? null : defaults.get("username");
         String defaultPassword = defaults == null ? null : defaults.get("password");
+        //注册中心端口
         int defaultPort = StringUtils.parseInteger(defaults == null ? null : defaults.get("port"));
         String defaultPath = defaults == null ? null : defaults.get("path");
         Map<String, String> defaultParameters = defaults == null ? null : new HashMap<String, String>(defaults);
@@ -65,15 +76,22 @@ public class UrlUtils {
             defaultParameters.remove("port");
             defaultParameters.remove("path");
         }
+        //例如url为zookeeper://10.0.1.3:2181?backup=10.0.1.4:2181
         URL u = URL.valueOf(url);
         boolean changed = false;
+        //protocol为zookeeper
         String protocol = u.getProtocol();
+        //username,password为空
         String username = u.getUsername();
         String password = u.getPassword();
+        //host为10.0.1.3
         String host = u.getHost();
+        //port为2181
         int port = u.getPort();
+        //path为空
         String path = u.getPath();
         Map<String, String> parameters = new HashMap<String, String>(u.getParameters());
+        //如果address中没有指定protocol、username、password,且defaults中有那么使用defaults中的值，changed标识为true
         if ((protocol == null || protocol.length() == 0) && defaultProtocol != null && defaultProtocol.length() > 0) {
             changed = true;
             protocol = defaultProtocol;
@@ -90,6 +108,7 @@ public class UrlUtils {
             changed = true;
             host = NetUtils.getLocalHost();
         }*/
+        //没指定port,那么类变量默认值为0，使用默认端口9090
         if (port <= 0) {
             if (defaultPort > 0) {
                 changed = true;
@@ -105,6 +124,7 @@ public class UrlUtils {
                 path = defaultPath;
             }
         }
+        //如果某个key在defaultParameters中存在，且在parameters中不存在，那么此key赋值到parameters中
         if (defaultParameters != null && defaultParameters.size() > 0) {
             for (Map.Entry<String, String> entry : defaultParameters.entrySet()) {
                 String key = entry.getKey();
@@ -118,6 +138,7 @@ public class UrlUtils {
                 }
             }
         }
+        //如果url中某个值改变了，那么重新创建对象
         if (changed) {
             u = new URL(protocol, username, password, host, port, path, parameters);
         }
@@ -128,6 +149,7 @@ public class UrlUtils {
         if (address == null || address.length() == 0) {
             return null;
         }
+        //分割address,一个一个去解析
         String[] addresses = Constants.REGISTRY_SPLIT_PATTERN.split(address);
         if (addresses == null || addresses.length == 0) {
             return null; //here won't be empty
@@ -138,6 +160,7 @@ public class UrlUtils {
         }
         return registries;
     }
+
 
     public static Map<String, Map<String, String>> convertRegister(Map<String, Map<String, String>> register) {
         Map<String, Map<String, String>> newRegister = new HashMap<String, Map<String, String>>();

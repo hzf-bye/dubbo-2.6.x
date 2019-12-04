@@ -39,6 +39,7 @@ public interface RegistryService {
      * 5. Allow URLs which have the same URL but different parameters to coexist,they can't cover each other.<br>
      *
      * @param url  Registration information , is not allowed to be empty, e.g: dubbo://10.20.153.10/com.alibaba.foo.BarService?version=1.0.0&application=kylin
+     * 用于提供者向注册中心注册提供者url
      */
     void register(URL url);
 
@@ -67,6 +68,7 @@ public interface RegistryService {
      *
      * @param url      Subscription condition, not allowed to be empty, e.g. consumer://10.20.153.10/com.alibaba.foo.BarService?version=1.0.0&application=kylin
      * @param listener A listener of the change event, not allowed to be empty
+     * 用于消费者向对应接口目录注册监听
      */
     void subscribe(URL url, NotifyListener listener);
 
@@ -88,6 +90,7 @@ public interface RegistryService {
      * @param url Query condition, is not allowed to be empty, e.g. consumer://10.20.153.10/com.alibaba.foo.BarService?version=1.0.0&application=kylin
      * @return The registered information list, which may be empty, the meaning is the same as the parameters of {@link com.alibaba.dubbo.registry.NotifyListener#notify(List<URL>)}.
      * @see com.alibaba.dubbo.registry.NotifyListener#notify(List)
+     * 用于查找查找url，通过消费者url查找提供者url以及服务治理有关的url
      */
     List<URL> lookup(URL url);
 

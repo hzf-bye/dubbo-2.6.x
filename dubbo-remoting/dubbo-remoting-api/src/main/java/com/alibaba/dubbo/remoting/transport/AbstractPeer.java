@@ -25,6 +25,10 @@ import com.alibaba.dubbo.remoting.RemotingException;
 
 /**
  * AbstractPeer
+ * 该类实现了Endpoint和ChannelHandler两个接口，要关注的两个点：
+ *
+ * 1.实现ChannelHandler接口并且有在属性中还有一个handler，下面很多实现方法也是直接调用了handler方法，这种模式叫做装饰模式，这样做可以对装饰对象灵活的增强功能。对装饰模式不懂的朋友可以google一下。有很多例子介绍。
+ * 2.在该类中有closing和closed属性，在Endpoint中有很多关于关闭通道的操作，会有关闭中和关闭完成的状态区分，在该类中就缓存了这两个属性来判断关闭的状态。
  */
 public abstract class AbstractPeer implements Endpoint, ChannelHandler {
 
@@ -33,8 +37,14 @@ public abstract class AbstractPeer implements Endpoint, ChannelHandler {
     private volatile URL url;
 
     // closing closed means the process is being closed and close is finished
+    /**
+     * 是否正在关闭
+     */
     private volatile boolean closing;
 
+    /**
+     * 是否关闭完成
+     */
     private volatile boolean closed;
 
     public AbstractPeer(URL url, ChannelHandler handler) {
@@ -50,6 +60,12 @@ public abstract class AbstractPeer implements Endpoint, ChannelHandler {
 
     @Override
     public void send(Object message) throws RemotingException {
+        /**
+         * url中sent的配置项
+         * 该配置项是选择是否等待消息发出
+         *      1.sent值为true，等待消息发出，消息发送失败将抛出异常。
+         *      2.sent值为false，不等待消息发出，将消息放入 IO 队列，即刻返回。
+         */
         send(message, url.getParameter(Constants.SENT_KEY, false));
     }
 

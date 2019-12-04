@@ -25,22 +25,52 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Request {
 
+    /**
+     * 心跳事件
+     */
     public static final String HEARTBEAT_EVENT = null;
 
+    /**
+     * 只读事件
+     */
     public static final String READONLY_EVENT = "R";
 
+    /**
+     * 请求编号自增序列
+     */
     private static final AtomicLong INVOKE_ID = new AtomicLong(0);
 
+    /**
+     * 请求编号
+     */
     private final long mId;
 
+    /**
+     * dubbo版本
+     */
     private String mVersion;
 
+    /**
+     * 是否需要响应
+     */
     private boolean mTwoWay = true;
 
+    /**
+     * 是否是事件
+     * 事件标识，
+     * false为当前数据包是请求或者响应包，
+     * true为当前数据包是心跳包（框架为了保活TCP连接，每次客户端和服务端互相发送心跳包时这个标志位就被设定，设置了心跳报文不会透传到业务方法调用，仅用于框架内部保活机制）
+     */
     private boolean mEvent = false;
 
+    /**
+     * 是否是异常的请求
+     */
     private boolean mBroken = false;
 
+    /**
+     * 请求数据
+     */
     private Object mData;
 
     public Request() {

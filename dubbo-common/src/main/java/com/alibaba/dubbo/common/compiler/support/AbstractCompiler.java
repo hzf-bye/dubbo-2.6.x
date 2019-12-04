@@ -31,6 +31,14 @@ public abstract class AbstractCompiler implements Compiler {
 
     private static final Pattern CLASS_PATTERN = Pattern.compile("class\\s+([$_a-zA-Z][$_a-zA-Z0-9]*)\\s+");
 
+    /**
+     * 1.通过正则表达式匹配出包路径以及类名，再根据包路径以及类名拼接处出全路径类名
+     * 2.尝试通过Clss.forName加载并返回该类，防止重复编译。如果该类加载器中没有这个类，则进入第三步
+     * 3.调用doCompile方法进行编译。这个抽象方法由子类实现。
+     * @param code        Java source code
+     * @param classLoader classloader
+     * @return
+     */
     @Override
     public Class<?> compile(String code, ClassLoader classLoader) {
         code = code.trim();

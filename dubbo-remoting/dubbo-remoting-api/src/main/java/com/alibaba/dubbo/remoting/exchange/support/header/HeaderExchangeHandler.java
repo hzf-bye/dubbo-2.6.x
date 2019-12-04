@@ -37,6 +37,11 @@ import java.net.InetSocketAddress;
 
 /**
  * ExchangeReceiver
+ * 主要负责一下4种事情：
+ * 1. 更新发送和读取请求时间戳
+ * 2. 判断请求格式或编解码是否有错，并响应客户端失败的具体原因
+ * 3. 处理Request请求和Response请求正常响应
+ * 4. 支持Telnet调用
  */
 public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
@@ -46,6 +51,13 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
     public static String KEY_WRITE_TIMESTAMP = HeartbeatHandler.KEY_WRITE_TIMESTAMP;
 
+    /**
+     * 这里的handler是com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#requestHandler
+     * com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#initClient(com.alibaba.dubbo.common.URL)传入requestHandler
+     *
+     * 因为在com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#createServer(com.alibaba.dubbo.common.URL)
+     * 中就用requestHandler来创建HeaderExchangeHandler实例
+     */
     private final ExchangeHandler handler;
 
     public HeaderExchangeHandler(ExchangeHandler handler) {
@@ -57,6 +69,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
     static void handleResponse(Channel channel, Response response) throws RemotingException {
         if (response != null && !response.isHeartbeat()) {
+            //唤醒阻塞的线程并通知结果
             DefaultFuture.received(channel, response);
         }
     }
@@ -82,6 +95,11 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
             String msg;
             if (data == null) msg = null;
+            /*
+             * 在处理请求时因为在编码层报错会透传到Handler
+             * 因此首先判断是否请求报文不正确
+             * 处理请求格式不正确（编解码），并把异常转换成字符串返回
+             */
             else if (data instanceof Throwable) msg = StringUtils.toString((Throwable) data);
             else msg = data.toString();
             res.setErrorMessage("Fail to decode request due to: " + msg);
@@ -93,10 +111,12 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         Object msg = req.getData();
         try {
             // handle data.
+            //此时的handler是com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#requestHandler
             Object result = handler.reply(channel, msg);
             res.setStatus(Response.OK);
             res.setResult(result);
         } catch (Throwable e) {
+            //方法调用失败
             res.setStatus(Response.SERVICE_ERROR);
             res.setErrorMessage(StringUtils.toString(e));
         }
@@ -160,6 +180,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
+        //更新时间时间戳
         channel.setAttribute(KEY_READ_TIMESTAMP, System.currentTimeMillis());
         ExchangeChannel exchangeChannel = HeaderExchangeChannel.getOrAddChannel(channel);
         try {
@@ -167,9 +188,11 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                 // handle request.
                 Request request = (Request) message;
                 if (request.isEvent()) {
+                    //处理readonly事件，在channel中打标
                     handlerEvent(channel, request);
                 } else {
                     if (request.isTwoWay()) {
+                        //处理返回调用并返回给客户端
                         Response response = handleRequest(exchangeChannel, request);
                         channel.send(response);
                     } else {
@@ -177,12 +200,15 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                     }
                 }
             } else if (message instanceof Response) {
+                //接受响应
                 handleResponse(channel, (Response) message);
             } else if (message instanceof String) {
+                //客户端不支持telnet调用
                 if (isClientSide(channel)) {
                     Exception e = new Exception("Dubbo client can not supported string message: " + message + " in channel: " + channel + ", url: " + channel.getUrl());
                     logger.error(e.getMessage(), e);
                 } else {
+                    //触发telnet调用并返回
                     String echo = handler.telnet(channel, (String) message);
                     if (echo != null && echo.length() > 0) {
                         channel.send(echo);

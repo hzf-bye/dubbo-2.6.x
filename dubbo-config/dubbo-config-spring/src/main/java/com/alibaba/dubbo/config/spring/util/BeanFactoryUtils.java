@@ -45,6 +45,8 @@ public abstract class BeanFactoryUtils {
     public static boolean addApplicationListener(ApplicationContext applicationContext, ApplicationListener listener) {
         try {
             // backward compatibility to spring 2.0.1
+            //结合spring这里的applicationContext肯定继承了AbstractApplicationContext，AbstractApplicationContext中有addApplicationListener方法
+            //因此返回true
             Method method = applicationContext.getClass().getMethod("addApplicationListener", ApplicationListener.class);
             method.invoke(applicationContext, listener);
             return true;

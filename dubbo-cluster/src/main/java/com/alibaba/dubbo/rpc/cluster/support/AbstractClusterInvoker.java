@@ -46,6 +46,10 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
 
     private static final Logger logger = LoggerFactory
             .getLogger(AbstractClusterInvoker.class);
+
+    /**
+     * RegistryDirectory实例
+     */
     protected final Directory<T> directory;
 
     protected final boolean availablecheck;

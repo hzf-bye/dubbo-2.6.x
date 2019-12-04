@@ -123,8 +123,10 @@ public abstract class AnnotationInjectedBeanPostProcessor<A extends Annotation> 
     public PropertyValues postProcessPropertyValues(
             PropertyValues pvs, PropertyDescriptor[] pds, Object bean, String beanName) throws BeanCreationException {
 
+        //查找bean所有标注了@Reference注解的字段和方法
         InjectionMetadata metadata = findInjectionMetadata(beanName, bean.getClass(), pvs);
         try {
+            //对字段方法进行反射绑定
             metadata.inject(bean, beanName, pvs);
         } catch (BeanCreationException ex) {
             throw ex;
@@ -150,6 +152,7 @@ public abstract class AnnotationInjectedBeanPostProcessor<A extends Annotation> 
             @Override
             public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
 
+                //遍历服务类所有字段，查找Reference注解标注
                 A annotation = getAnnotation(field, getAnnotationType());
 
                 if (annotation != null) {

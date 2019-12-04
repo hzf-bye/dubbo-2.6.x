@@ -27,6 +27,10 @@ import com.alibaba.dubbo.remoting.transport.dispatcher.WrappedChannelHandler;
 
 import java.util.concurrent.ExecutorService;
 
+/**
+ * 该类也是继承了WrappedChannelHandler，是WrappedChannelHandler的最后一个子类，也是增强功能，
+ * 不过该类只是处理了所有接收到的消息分发到线程池。
+ */
 public class MessageOnlyChannelHandler extends WrappedChannelHandler {
 
     public MessageOnlyChannelHandler(ChannelHandler handler, URL url) {
@@ -35,8 +39,10 @@ public class MessageOnlyChannelHandler extends WrappedChannelHandler {
 
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
+        // 获得线程池实例
         ExecutorService cexecutor = getExecutorService();
         try {
+            // 把消息分发到线程池
             cexecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.RECEIVED, message));
         } catch (Throwable t) {
             throw new ExecutionException(message, channel, getClass() + " error when process received event .", t);

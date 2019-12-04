@@ -102,8 +102,16 @@ public class DubboConfigBindingRegistrar implements ImportBeanDefinitionRegistra
 
         for (String beanName : beanNames) {
 
+            //注册对应的bean，如ApplicationConfig实例
             registerDubboConfigBean(beanName, configClass, registry);
 
+            /*
+             * 未每一个bean都注册一个DubboConfigBindingBeanPostProcessor类型的bean
+             * 并且此bean有有两个属性 一个beanName代表当前ApplicationConfig实例的beanName,
+             * 还有一个prefix，代表此bean的属性对应配置文件中的前缀
+             * 因为是一个BeanPostProcessor类型的bean，因此当实例化beanName时，
+             * 会通过此DubboConfigBindingBeanPostProcessor实例为beanName注入属性
+             */
             registerDubboConfigBindingBeanPostProcessor(prefix, beanName, multiple, registry);
 
         }

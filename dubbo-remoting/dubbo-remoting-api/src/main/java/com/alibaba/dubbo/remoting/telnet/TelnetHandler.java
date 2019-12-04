@@ -22,12 +22,14 @@ import com.alibaba.dubbo.remoting.RemotingException;
 
 /**
  * TelnetHandler
+ * 该接口上telnet命令处理器接口，是一个可扩展接口。它定义了一个方法，就是处理相关的telnet命令。
  */
 @SPI
 public interface TelnetHandler {
 
     /**
      * telnet.
+     * 处理对应的telnet命令
      *
      * @param channel
      * @param message

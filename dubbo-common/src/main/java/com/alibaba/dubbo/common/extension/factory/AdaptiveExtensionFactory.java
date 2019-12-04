@@ -30,9 +30,17 @@ import java.util.List;
 @Adaptive
 public class AdaptiveExtensionFactory implements ExtensionFactory {
 
+    /**
+     * 用来缓存所有工厂实现，包括SpiExtensionFactory,SpringExtensionFactory
+     */
     private final List<ExtensionFactory> factories;
 
     public AdaptiveExtensionFactory() {
+        /*
+         * ExtensionFactory也是通过Spi实现的。
+         * 因此getSupportedExtensions方法可以获取ExtensionFactory的所有扩展点加载器
+         * 然后保存至factories中
+         */
         ExtensionLoader<ExtensionFactory> loader = ExtensionLoader.getExtensionLoader(ExtensionFactory.class);
         List<ExtensionFactory> list = new ArrayList<ExtensionFactory>();
         for (String name : loader.getSupportedExtensions()) {
@@ -41,6 +49,11 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
         factories = Collections.unmodifiableList(list);
     }
 
+    /**
+     * 调用此方法，遍历所有factories
+     * 我们可以理解为，AdaptiveExtensionFactory持有了所有的具体工厂的实现，
+     * getExtension方法就是遍历所有工厂实现，最终还是调用SpiExtensionFactory以及SpringExtensionFactory
+     */
     @Override
     public <T> T getExtension(Class<T> type, String name) {
         for (ExtensionFactory factory : factories) {

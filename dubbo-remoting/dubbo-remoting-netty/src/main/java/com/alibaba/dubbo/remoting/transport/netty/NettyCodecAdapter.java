@@ -37,19 +37,38 @@ import java.io.IOException;
 
 /**
  * NettyCodecAdapter.
+ * 该类是基于netty3实现的编解码类。
  */
 final class NettyCodecAdapter {
 
+    /**
+     * 编码器
+     */
     private final ChannelHandler encoder = new InternalEncoder();
 
+    /**
+     * 解码器
+     */
     private final ChannelHandler decoder = new InternalDecoder();
 
+    /**
+     * 编解码器
+     */
     private final Codec2 codec;
 
+    /**
+     * url对象
+     */
     private final URL url;
 
+    /**
+     * 缓冲区大小
+     */
     private final int bufferSize;
 
+    /**
+     * 通道对象
+     */
     private final com.alibaba.dubbo.remoting.ChannelHandler handler;
 
     public NettyCodecAdapter(Codec2 codec, URL url, com.alibaba.dubbo.remoting.ChannelHandler handler) {
@@ -57,6 +76,7 @@ final class NettyCodecAdapter {
         this.url = url;
         this.handler = handler;
         int b = url.getPositiveParameter(Constants.BUFFER_KEY, Constants.DEFAULT_BUFFER_SIZE);
+        // 如果缓存区大小在16字节以内，则设置配置大小，如果不是，则设置8字节的缓冲区大小
         this.bufferSize = b >= Constants.MIN_BUFFER_SIZE && b <= Constants.MAX_BUFFER_SIZE ? b : Constants.DEFAULT_BUFFER_SIZE;
     }
 
@@ -73,14 +93,18 @@ final class NettyCodecAdapter {
 
         @Override
         protected Object encode(ChannelHandlerContext ctx, Channel ch, Object msg) throws Exception {
+            // 动态分配一个1k的缓冲区
             com.alibaba.dubbo.remoting.buffer.ChannelBuffer buffer =
                     com.alibaba.dubbo.remoting.buffer.ChannelBuffers.dynamicBuffer(1024);
+            // 获得通道对象
             NettyChannel channel = NettyChannel.getOrAddChannel(ch, url, handler);
             try {
+                // 编码
                 codec.encode(channel, buffer, msg);
             } finally {
                 NettyChannel.removeChannelIfDisconnected(ch);
             }
+            // 基于buteBuffer创建一个缓冲区，并且写入数据
             return ChannelBuffers.wrappedBuffer(buffer.toByteBuffer());
         }
     }
@@ -93,12 +117,15 @@ final class NettyCodecAdapter {
         @Override
         public void messageReceived(ChannelHandlerContext ctx, MessageEvent event) throws Exception {
             Object o = event.getMessage();
+            // 如果消息不是一个ChannelBuffer类型
             if (!(o instanceof ChannelBuffer)) {
+                // 转发事件到与此上下文关联的处理程序最近的上游
                 ctx.sendUpstream(event);
                 return;
             }
 
             ChannelBuffer input = (ChannelBuffer) o;
+            // 如果可读数据不大于0，直接返回
             int readable = input.readableBytes();
             if (readable <= 0) {
                 return;
@@ -106,17 +133,24 @@ final class NettyCodecAdapter {
 
             com.alibaba.dubbo.remoting.buffer.ChannelBuffer message;
             if (buffer.readable()) {
+                // 判断buffer是否是动态分配的缓冲区
                 if (buffer instanceof DynamicChannelBuffer) {
+                    // 写入数据
                     buffer.writeBytes(input.toByteBuffer());
                     message = buffer;
                 } else {
+                    // 需要的缓冲区大小
                     int size = buffer.readableBytes() + input.readableBytes();
+                    // 动态生成缓冲区
                     message = com.alibaba.dubbo.remoting.buffer.ChannelBuffers.dynamicBuffer(
                             size > bufferSize ? size : bufferSize);
+                    // 把buffer数据写入message
                     message.writeBytes(buffer, buffer.readableBytes());
+                    // 把input数据写入message
                     message.writeBytes(input.toByteBuffer());
                 }
             } else {
+                // 否则 基于ByteBuffer通过buffer来创建一个新的缓冲区
                 message = com.alibaba.dubbo.remoting.buffer.ChannelBuffers.wrappedBuffer(
                         input.toByteBuffer());
             }
@@ -130,25 +164,30 @@ final class NettyCodecAdapter {
                 do {
                     saveReaderIndex = message.readerIndex();
                     try {
+                        // 解码
                         msg = codec.decode(channel, message);
                     } catch (IOException e) {
                         buffer = com.alibaba.dubbo.remoting.buffer.ChannelBuffers.EMPTY_BUFFER;
                         throw e;
                     }
+                    // 拆包
                     if (msg == Codec2.DecodeResult.NEED_MORE_INPUT) {
                         message.readerIndex(saveReaderIndex);
                         break;
                     } else {
+                        // 如果已经到达读索引，则没有数据可解码
                         if (saveReaderIndex == message.readerIndex()) {
                             buffer = com.alibaba.dubbo.remoting.buffer.ChannelBuffers.EMPTY_BUFFER;
                             throw new IOException("Decode without read data.");
                         }
                         if (msg != null) {
+                            // 将消息发送到指定关联的处理程序最近的上游
                             Channels.fireMessageReceived(ctx, msg, event.getRemoteAddress());
                         }
                     }
                 } while (message.readable());
             } finally {
+                // 如果消息还有可读数据，则丢弃
                 if (message.readable()) {
                     message.discardReadBytes();
                     buffer = message;

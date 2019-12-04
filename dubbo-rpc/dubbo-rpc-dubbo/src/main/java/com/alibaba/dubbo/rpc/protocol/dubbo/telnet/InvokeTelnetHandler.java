@@ -99,6 +99,24 @@ public class InvokeTelnetHandler implements TelnetHandler {
         return true;
     }
 
+    public static void main(String[] args) {
+
+        //{"class":"com.xxx.xxx.xxxRequest","paranName1":"paramValue1","paranName2":"paramValue2"}
+        List<Object> list = JSON.parseArray("[" + "{\"class\":\"com.xxx.xxx.xxxRequest\",\"paranName1\":\"paramValue1\",\"paranName2\":\"paramValue2\"}" + "]", Object.class);
+        Object arg = list.get(0);
+        System.out.println(arg instanceof Map);
+        String name = (String) ((Map<?, ?>) arg).get("class");
+        Class<?> cls = arg.getClass();
+        cls = ReflectUtils.forName(name);
+        System.out.println();
+
+
+    }
+
+    /**
+     * 例如invoke命令为:invoke com.xxx.xxx.xxxService.methodName({"class":"com.xxx.xxx.xxxRequest","paranName1":"paramValue1","paranName2":"paramValue2"})
+     * 那么message为:com.xxx.xxx.xxxService.methodName({"class":"com.xxx.xxx.xxxRequest","paranName1":"paramValue1","paranName2":"paramValue2"})
+     */
     @Override
     @SuppressWarnings("unchecked")
     public String telnet(Channel channel, String message) {
@@ -114,22 +132,36 @@ public class InvokeTelnetHandler implements TelnetHandler {
         if (i < 0 || !message.endsWith(")")) {
             return "Invalid parameters, format: service.method(args)";
         }
+        //提取调用方法（由接口名.方法名组成）
+        //com.xxx.xxx.xxxService.methodName
         String method = message.substring(0, i).trim();
+        //提取调用方法参数值
+        //{"class":"com.xxx.xxx.xxxRequest","paranName1":"paramValue1","paranName2":"paramValue2"}
         String args = message.substring(i + 1, message.length() - 1).trim();
         i = method.lastIndexOf(".");
         if (i >= 0) {
+            //提取接口名称
+            //com.xxx.xxx.xxxService
             service = method.substring(0, i).trim();
+            //提取方法名称
+            //methodName
             method = method.substring(i + 1).trim();
         }
         List<Object> list;
         try {
+            //将参数JSON传转化为JSON对象
             list = JSON.parseArray("[" + args + "]", Object.class);
         } catch (Throwable t) {
             return "Invalid json argument, cause: " + t.getMessage();
         }
         Invoker<?> invoker = null;
         Method invokeMethod = null;
+        //遍历所有服务提供者
+        //这里获取到的 DubboProtocol.getDubboProtocol().getExporters()获取到的exporterMap
+        //在服务初始化的时候赋值，DubboProtocol#export
         for (Exporter<?> exporter : DubboProtocol.getDubboProtocol().getExporters()) {
+            //如果命令没有指定接口名称，那么就遍历提供者的所有方法，根据方法名+参数类型去找到一个匹配的方法
+            //只要找到了一个则返回，因此这种方式可能不能精确的匹配到想到调用的方法
             if (service == null || service.length() == 0) {
                 invokeMethod = findMethod(exporter, method, list);
                 if (invokeMethod != null) {
@@ -137,6 +169,7 @@ public class InvokeTelnetHandler implements TelnetHandler {
                     break;
                 }
             } else {
+                //指定了接口名称那么在上面的基础上再加上接口名的判断条件
                 if (service.equals(exporter.getInvoker().getInterface().getSimpleName())
                         || service.equals(exporter.getInvoker().getInterface().getName())
                         || service.equals(exporter.getInvoker().getUrl().getPath())) {
@@ -149,9 +182,13 @@ public class InvokeTelnetHandler implements TelnetHandler {
         if (invoker != null) {
             if (invokeMethod != null) {
                 try {
+                    //将JSON参数值转化为java对象值
                     Object[] array = PojoUtils.realize(list.toArray(), invokeMethod.getParameterTypes(), invokeMethod.getGenericParameterTypes());
                     RpcContext.getContext().setLocalAddress(channel.getLocalAddress()).setRemoteAddress(channel.getRemoteAddress());
                     long start = System.currentTimeMillis();
+                    //根据查找到的Invoker，构造RpcInvocation进行方法调用
+                    //返回RpcResult或者RpcException
+                    //com.alibaba.dubbo.rpc.proxy.javassist.JavassistProxyFactory.getInvoker
                     Object result = invoker.invoke(new RpcInvocation(invokeMethod, array)).recreate();
                     long end = System.currentTimeMillis();
                     buf.append(JSON.toJSONString(result));

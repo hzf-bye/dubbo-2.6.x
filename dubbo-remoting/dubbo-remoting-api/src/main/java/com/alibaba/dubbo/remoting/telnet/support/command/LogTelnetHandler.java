@@ -34,6 +34,7 @@ import java.util.Date;
 
 /**
  * LogTelnetHandler
+ * 该类实现了TelnetHandler接口，封装了log命令的实现。
  */
 @Activate
 @Help(parameter = "level", summary = "Change log level or show log ", detail = "Change log level or show log")
@@ -41,6 +42,9 @@ public class LogTelnetHandler implements TelnetHandler {
 
     public static final String SERVICE_KEY = "telnet.log";
 
+    /**
+     * log命令实现原理就是从日志文件中把日志信息读取出来。
+     */
     @Override
     public String telnet(Channel channel, String message) {
         long size = 0;
@@ -51,8 +55,10 @@ public class LogTelnetHandler implements TelnetHandler {
         } else {
             String str[] = message.split(" ");
             if (!StringUtils.isInteger(str[0])) {
+                // 设置日志级别
                 LoggerFactory.setLevel(Level.valueOf(message.toUpperCase()));
             } else {
+                // 获得日志长度
                 int SHOW_LOG_LENGTH = Integer.parseInt(str[0]);
 
                 if (file != null && file.exists()) {
@@ -64,11 +70,15 @@ public class LogTelnetHandler implements TelnetHandler {
                                 size = filechannel.size();
                                 ByteBuffer bb;
                                 if (size <= SHOW_LOG_LENGTH) {
+                                    // 分配缓冲区
                                     bb = ByteBuffer.allocate((int) size);
+                                    // 读日志数据
                                     filechannel.read(bb, 0);
                                 } else {
                                     int pos = (int) (size - SHOW_LOG_LENGTH);
+                                    // 分配缓冲区
                                     bb = ByteBuffer.allocate(SHOW_LOG_LENGTH);
+                                    // 读日志数据
                                     filechannel.read(bb, pos);
                                 }
                                 bb.flip();

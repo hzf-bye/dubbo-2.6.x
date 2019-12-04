@@ -27,7 +27,7 @@ import java.util.Collection;
 
 /**
  * ServerDelegate
- *
+ * 作为装饰模式中的装饰角色，所以类中的所有实现方法都调用了属性server的方法
  *
  */
 public class ServerDelegate implements Server {

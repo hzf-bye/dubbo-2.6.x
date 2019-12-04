@@ -30,6 +30,7 @@ import com.alibaba.dubbo.config.support.Parameter;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.security.Provider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -89,17 +90,36 @@ public abstract class AbstractConfig implements Serializable {
         return value;
     }
 
+    /**
+     * 通过反射获取config的所有的set方法，然后拼接key,尝试从配置文件中获取对因的值，
+     * 然后再通过反射调用set方法对对因的变量赋值
+     *
+     * 比如config是ProviderConfig
+     * 那么当遍历到setVersion方法时，会凭借dubbo.provider.version去读取配置文件中的值，如果读取到了那么就反射调用setVersion方法赋值
+     *
+     * @param config
+     */
     protected static void appendProperties(AbstractConfig config) {
         if (config == null) {
             return;
         }
+        //比如此时config是ProviderConfig
+        //getTagName返回值为provider
         String prefix = "dubbo." + getTagName(config.getClass()) + ".";
         Method[] methods = config.getClass().getMethods();
+        //获取所有方法
         for (Method method : methods) {
             try {
                 String name = method.getName();
+
+                if ( name.contains("setRetryPeriod") ) {
+                    System.out.println();
+                }
+
+                //获取所有set方法，且返回值是原始类型isPrimitive
                 if (name.length() > 3 && name.startsWith("set") && Modifier.isPublic(method.getModifiers())
                         && method.getParameterTypes().length == 1 && isPrimitive(method.getParameterTypes()[0])) {
+                    //如果此时set方法是setContextPath那么property为context.path
                     String property = StringUtils.camelToSplitName(name.substring(3, 4).toLowerCase() + name.substring(4), ".");
 
                     String value = null;
@@ -168,19 +188,34 @@ public abstract class AbstractConfig implements Serializable {
         return tag;
     }
 
+    public static void main(String[] args) {
+
+        String tag = getTagName(ProviderConfig.class);
+
+        System.out.println(StringUtils.camelToSplitName("configLengthConfig", "."));
+
+    }
+
     protected static void appendParameters(Map<String, String> parameters, Object config) {
         appendParameters(parameters, config, null);
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * parameters:参数集合。实际上，该集合会用于 URL.parameters
+     * config:配置对象。
+     * prefix:属性前缀。用于配置项添加到 parameters 中时的前缀。
+     */
     protected static void appendParameters(Map<String, String> parameters, Object config, String prefix) {
         if (config == null) {
             return;
         }
+        //获得所有方法的数组，为下面通过反射获得配置项的值做准备。
         Method[] methods = config.getClass().getMethods();
         for (Method method : methods) {
             try {
                 String name = method.getName();
+                // 获取返回值类型为基本类型，public 的 getting 方法。
                 if ((name.startsWith("get") || name.startsWith("is"))
                         && !"getClass".equals(name)
                         && Modifier.isPublic(method.getModifiers())
@@ -190,6 +225,9 @@ public abstract class AbstractConfig implements Serializable {
                     if (method.getReturnType() == Object.class || parameter != null && parameter.excluded()) {
                         continue;
                     }
+                    //方法名为get或者is开头
+                    // 获得属性名，比如方法名是getAppendParameters
+                    //那么prop = append.parameters
                     int i = name.startsWith("get") ? 3 : 2;
                     String prop = StringUtils.camelToSplitName(name.substring(i, i + 1).toLowerCase() + name.substring(i + 1), ".");
                     String key;
@@ -198,17 +236,22 @@ public abstract class AbstractConfig implements Serializable {
                     } else {
                         key = prop;
                     }
+                    // 获得get方法返回的属性值
                     Object value = method.invoke(config);
                     String str = String.valueOf(value).trim();
                     if (value != null && str.length() > 0) {
                         if (parameter != null && parameter.escaped()) {
+                            // 转义
                             str = URL.encode(str);
                         }
+                        // 拼接，详细说明参见 `Parameter#append()` 方法的说明。
                         if (parameter != null && parameter.append()) {
+                            // default. 里获取，适用于 ServiceConfig =》ProviderConfig 、ReferenceConfig =》ConsumerConfig 。
                             String pre = parameters.get(Constants.DEFAULT_KEY + "." + key);
                             if (pre != null && pre.length() > 0) {
                                 str = pre + "," + str;
                             }
+                            // 通过 `parameters` 属性配置，例如 `AbstractMethodConfig.parameters` 。
                             pre = parameters.get(key);
                             if (pre != null && pre.length() > 0) {
                                 str = pre + "," + str;

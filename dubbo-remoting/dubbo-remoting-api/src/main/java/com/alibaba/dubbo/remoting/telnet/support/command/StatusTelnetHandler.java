@@ -34,6 +34,7 @@ import java.util.Map;
 
 /**
  * StatusTelnetHandler
+ * 该类实现了TelnetHandler接口，封装了status命令的实现。
  */
 @Activate
 @Help(parameter = "[-l]", summary = "Show status.", detail = "Show status.")
@@ -41,13 +42,20 @@ public class StatusTelnetHandler implements TelnetHandler {
 
     private final ExtensionLoader<StatusChecker> extensionLoader = ExtensionLoader.getExtensionLoader(StatusChecker.class);
 
+    /**
+     * 当执行status -l命令时会触发此方法，此方法会加载所有的扩展点的类，然后调用所有扩展点的check方法。
+     *
+     */
     @Override
     public String telnet(Channel channel, String message) {
+        // 显示状态列表
         if (message.equals("-l")) {
+            //获取所有的健康监测的StatusChecker，并且默认加载key为status的扩展对象（可自定义）
             List<StatusChecker> checkers = extensionLoader.getActivateExtension(channel.getUrl(), "status");
             String[] header = new String[]{"resource", "status", "message"};
             List<List<String>> table = new ArrayList<List<String>>();
             Map<String, Status> statuses = new HashMap<String, Status>();
+            // 遍历各个资源的状态
             if (checkers != null && !checkers.isEmpty()) {
                 for (StatusChecker checker : checkers) {
                     String name = extensionLoader.getExtensionName(checker);
@@ -67,6 +75,7 @@ public class StatusTelnetHandler implements TelnetHandler {
                     }
                 }
             }
+            //如果一个当全部 OK 时则显示 OK，只要有一个 ERROR 则显示 ERROR，只要有一个 WARN 则显示 WARN
             Status stat = StatusUtils.getSummaryStatus(statuses);
             List<String> row = new ArrayList<String>();
             row.add("summary");

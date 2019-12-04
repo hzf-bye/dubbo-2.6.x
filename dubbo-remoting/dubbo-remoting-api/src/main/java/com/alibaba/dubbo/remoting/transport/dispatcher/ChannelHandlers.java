@@ -24,6 +24,10 @@ import com.alibaba.dubbo.remoting.Dispatcher;
 import com.alibaba.dubbo.remoting.exchange.support.header.HeartbeatHandler;
 import com.alibaba.dubbo.remoting.transport.MultiMessageHandler;
 
+/**
+ * 该类是通道处理器工厂，会对传入的handler进行一次包装，无论是Client还是Server都会做这样的处理，
+ * 也就是做了一些功能上的增强，就像上述之前提到的装饰模式中的那些功能。
+ */
 public class ChannelHandlers {
 
     private static ChannelHandlers INSTANCE = new ChannelHandlers();
@@ -43,7 +47,11 @@ public class ChannelHandlers {
         INSTANCE = instance;
     }
 
+    /**
+     * 其实就是包装了MultiMessageHandler功能，增加了多消息处理的功能，以及对心跳消息做了功能增强。
+     */
     protected ChannelHandler wrapInternal(ChannelHandler handler, URL url) {
+        // 调用了多消息处理器，对心跳消息进行了功能加强
         return new MultiMessageHandler(new HeartbeatHandler(ExtensionLoader.getExtensionLoader(Dispatcher.class)
                 .getAdaptiveExtension().dispatch(handler, url)));
     }

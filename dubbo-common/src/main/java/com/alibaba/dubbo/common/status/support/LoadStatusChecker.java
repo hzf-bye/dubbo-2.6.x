@@ -26,6 +26,7 @@ import java.lang.reflect.Method;
 
 /**
  * Load Status
+ * 系统平均负载检查
  */
 @Activate
 public class LoadStatusChecker implements StatusChecker {

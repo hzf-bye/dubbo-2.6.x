@@ -56,6 +56,10 @@ public abstract class AbstractServiceConfig extends AbstractInterfaceConfig {
     // whether to register as a dynamic service or not on register center
     protected Boolean dynamic;
 
+    /**
+     * 令牌验证，为空表示不开启，如果为true，表示随机生成动态令牌，否则使用静态令牌，
+     * 令牌的作用是防止消费者绕过注册中心直接访问，保证注册中心的授权功能有效，如果使用点对点调用，需关闭令牌功能
+     */
     // whether to use token
     protected String token;
 

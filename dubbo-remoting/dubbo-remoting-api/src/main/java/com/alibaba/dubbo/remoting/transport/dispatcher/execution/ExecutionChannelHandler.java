@@ -33,6 +33,8 @@ import java.util.concurrent.RejectedExecutionException;
 /**
  * Only request message will be dispatched to thread pool. Other messages like response, connect, disconnect,
  * heartbeat will be directly executed by I/O thread.
+ * 该类继承了WrappedChannelHandler，也是增强了功能，处理的是接收请求消息时，把请求消息分发到线程池，
+ * 而除了请求消息以外，其他消息类型都直接通过I / O线程直接执行。
  */
 public class ExecutionChannelHandler extends WrappedChannelHandler {
 
@@ -40,16 +42,24 @@ public class ExecutionChannelHandler extends WrappedChannelHandler {
         super(handler, url);
     }
 
+    /**
+     * 其中有个打补丁的方式是当线程池满了的时候，消费者只能等待请求超时，所以这里直接返回线程池满的错误。
+     */
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
+        // 获得线程池实例
         ExecutorService cexecutor = getExecutorService();
+        // 如果消息是request类型，才会分发到线程池，其他消息，如响应，连接，断开连接，心跳将由I / O线程直接执行。
         if (message instanceof Request) {
             try {
+                // 把请求消息分发到线程池
                 cexecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.RECEIVED, message));
             } catch (Throwable t) {
                 // FIXME: when the thread pool is full, SERVER_THREADPOOL_EXHAUSTED_ERROR cannot return properly,
                 // therefore the consumer side has to wait until gets timeout. This is a temporary solution to prevent
                 // this scenario from happening, but a better solution should be considered later.
+                // 当线程池满了，SERVER_THREADPOOL_EXHAUSTED_ERROR错误无法正常返回
+                // 因此消费者方必须等到超时。这是一种预防的临时解决方案，所以这里直接返回该错误
                 if (t instanceof RejectedExecutionException) {
                     Request request = (Request) message;
                     if (request.isTwoWay()) {
@@ -65,6 +75,7 @@ public class ExecutionChannelHandler extends WrappedChannelHandler {
                 throw new ExecutionException(message, channel, getClass() + " error when process received event.", t);
             }
         } else {
+            // 如果消息不是request类型，则直接处理
             handler.received(channel, message);
         }
     }

@@ -96,12 +96,16 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
         this.packagesToScan = packagesToScan;
     }
 
+
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
 
+        //获取用户@DubboComponnetScan注解配置的包路径
+        //dubbo框架首先会提取用户配置的扫描包名称，因为包名可能是${}占位符，因此框架会调用spring的占位符解析做一步解码
         Set<String> resolvedPackagesToScan = resolvePackagesToScan(packagesToScan);
 
         if (!CollectionUtils.isEmpty(resolvedPackagesToScan)) {
+            //触发ServiceBean定义和注入
             registerServiceBeans(resolvedPackagesToScan, registry);
         } else {
             if (logger.isWarnEnabled()) {
@@ -118,6 +122,9 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
      * @param packagesToScan The base packages to scan
      * @param registry       {@link BeanDefinitionRegistry}
      */
+    /**
+     * 开始真正的扫描，委托spring对所有符合条件的.class文件做字节码分析，最终通过扫描啊@Service注解作为过滤条件。
+     */
     private void registerServiceBeans(Set<String> packagesToScan, BeanDefinitionRegistry registry) {
 
         DubboClassPathBeanDefinitionScanner scanner =
@@ -127,20 +134,24 @@ public class ServiceAnnotationBeanPostProcessor implements BeanDefinitionRegistr
 
         scanner.setBeanNameGenerator(beanNameGenerator);
 
+        //扫描包路径下的dubbo的@Service注解，注意不是sprin中的@Service注解
         scanner.addIncludeFilter(new AnnotationTypeFilter(Service.class));
 
         for (String packageToScan : packagesToScan) {
 
+            // 将@Service作为不同的bean注入容器，这里并没有设置beanClass
             // Registers @Service Bean first
             scanner.scan(packageToScan);
 
             // Finds all BeanDefinitionHolders of @Service whether @ComponentScan scans or not.
+            //对扫描的服务创建BeanDefinitionHolder，用于生成ServiceBean定义
             Set<BeanDefinitionHolder> beanDefinitionHolders =
                     findServiceBeanDefinitionHolders(scanner, packageToScan, registry, beanNameGenerator);
 
             if (!CollectionUtils.isEmpty(beanDefinitionHolders)) {
 
                 for (BeanDefinitionHolder beanDefinitionHolder : beanDefinitionHolders) {
+                    //注册ServiceBean并做数据绑定和解析
                     registerServiceBean(beanDefinitionHolder, registry, scanner);
                 }
 

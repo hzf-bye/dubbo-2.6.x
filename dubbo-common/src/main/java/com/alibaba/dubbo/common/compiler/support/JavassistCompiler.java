@@ -47,10 +47,19 @@ public class JavassistCompiler extends AbstractCompiler {
 
     private static final Pattern FIELD_PATTERN = Pattern.compile("[^\n]+=[^\n]+;");
 
+    /**
+     * 1.初始化 Javassist，设置默认参数，如设置当前的classpath
+     * 2.通过正则表达式匹配出所有的import的包，并使用 Javassist添加import
+     * 3.通过正则表达式匹配出所有的extends的包，创建Class对象，并使用 Javassist添加extends
+     * 4.通过正则表达式匹配出所有的implements的包，并使用 Javassist添加extends
+     * 5.通过正则表达式匹配出类里面所有的内容，即得到{}中的内容，再通过正则表达式匹配出所有的方法，并使用 Javassist添加类方法
+     * 6.生成Class对象
+     */
     @Override
     public Class<?> doCompile(String name, String source) throws Throwable {
         int i = name.lastIndexOf('.');
         String className = i < 0 ? name : name.substring(i + 1);
+        //初始化Javassist的类池
         ClassPool pool = new ClassPool(true);
         pool.appendClassPath(new LoaderClassPath(ClassHelper.getCallerClassLoader(getClass())));
         Matcher matcher = IMPORT_PATTERN.matcher(source);

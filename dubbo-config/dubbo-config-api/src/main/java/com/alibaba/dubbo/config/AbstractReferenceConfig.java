@@ -40,6 +40,9 @@ public abstract class AbstractReferenceConfig extends AbstractInterfaceConfig {
     protected Boolean init;
 
     // whether to use generic interface
+    /**
+     * 是否缺省泛化接口，如果为泛化接口，将返回GenericService
+     */
     protected String generic;
 
     // whether to find reference's instance from the current JVM
@@ -59,6 +62,9 @@ public abstract class AbstractReferenceConfig extends AbstractInterfaceConfig {
     protected String version;
 
     // group
+    /**
+     * 服务分组，当一个接口有多个实现，可以用分组区分，必需和服务提供方一致
+     */
     protected String group;
 
     public Boolean isCheck() {

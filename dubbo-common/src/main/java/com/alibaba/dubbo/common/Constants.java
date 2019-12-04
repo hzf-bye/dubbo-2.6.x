@@ -146,7 +146,7 @@ public class Constants {
 
     public static final int MIN_BUFFER_SIZE = 1 * 1024;
 
-    public static final String REMOVE_VALUE_PREFIX = "-";
+    public static final String /**/REMOVE_VALUE_PREFIX = "-";
 
     public static final String HIDE_KEY_PREFIX = ".";
 

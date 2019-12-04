@@ -62,6 +62,9 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     protected MonitorConfig monitor;
 
     // proxy type
+    /**
+     * 生成动态代理方式，可选：jdk/javassist
+     */
     protected String proxy;
 
     // cluster type
@@ -161,26 +164,37 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     protected List<URL> loadRegistries(boolean provider) {
         checkRegistry();
         List<URL> registryList = new ArrayList<URL>();
+        // 如果registries为空，直接返回空集合
         if (registries != null && !registries.isEmpty()) {
+            // 遍历注册中心配置集合registries
             for (RegistryConfig config : registries) {
+                // 获得地址
                 String address = config.getAddress();
+                // 若地址为空，则设置为0.0.0.0
                 if (address == null || address.length() == 0) {
                     address = Constants.ANYHOST_VALUE;
                 }
+                //如果配置文件中配置了dubbo.registry.address配置，那么使用此配置
                 String sysaddress = System.getProperty("dubbo.registry.address");
                 if (sysaddress != null && sysaddress.length() > 0) {
                     address = sysaddress;
                 }
+                // 如果地址为N/A，则跳过
                 if (address.length() > 0 && !RegistryConfig.NO_AVAILABLE.equalsIgnoreCase(address)) {
                     Map<String, String> map = new HashMap<String, String>();
+                    // 添加 ApplicationConfig 中的字段信息到 map 中
                     appendParameters(map, application);
+                    // 添加 RegistryConfig 字段信息到 map 中
                     appendParameters(map, config);
+                    // 添加path
                     map.put("path", RegistryService.class.getName());
+                    // 添加 协议版本、发布版本，时间戳 等信息到 map 中
                     map.put("dubbo", Version.getProtocolVersion());
                     map.put(Constants.TIMESTAMP_KEY, String.valueOf(System.currentTimeMillis()));
                     if (ConfigUtils.getPid() > 0) {
                         map.put(Constants.PID_KEY, String.valueOf(ConfigUtils.getPid()));
                     }
+                    // 如果map中没有protocol，且没有配置remote的扩展类则默认为使用dubbo协议
                     if (!map.containsKey("protocol")) {
                         if (ExtensionLoader.getExtensionLoader(RegistryFactory.class).hasExtension("remote")) {
                             map.put("protocol", "remote");
@@ -188,10 +202,17 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                             map.put("protocol", "dubbo");
                         }
                     }
+                    // 解析得到 URL 列表，address 可能包含多个注册中心 ip，因此解析得到的是一个 URL 列表
                     List<URL> urls = UrlUtils.parseURLs(address, map);
+                    // 遍历URL 列表
                     for (URL url : urls) {
+                        // 将 URL 协议头设置为 registry
                         url = url.addParameter(Constants.REGISTRY_KEY, url.getProtocol());
                         url = url.setProtocol(Constants.REGISTRY_PROTOCOL);
+                        // 通过判断条件，决定是否添加 url 到 registryList 中，条件如下：
+                        // 1.如果是服务提供者，并且是注册中心服务
+                        // 2.消费者端，并且是订阅服务
+                        // 满足其一则加入到registryList
                         if ((provider && url.getParameter(Constants.REGISTER_KEY, true))
                                 || (!provider && url.getParameter(Constants.SUBSCRIBE_KEY, true))) {
                             registryList.add(url);

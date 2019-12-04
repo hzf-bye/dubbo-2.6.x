@@ -34,14 +34,25 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * NettyHandler
+ * 该类继承了SimpleChannelHandler类，是基于netty3的通道处理器
+ * ，而该类被加上了@Sharable注解，也就是说该处理器可以从属于多个ChannelPipeline
  */
 @Sharable
 public class NettyHandler extends SimpleChannelHandler {
 
-    private final Map<String, Channel> channels = new ConcurrentHashMap<String, Channel>(); // <ip:port, channel>
+    /**
+     * 通道集合，key是主机地址 ip:port
+     */
+    private final Map<String, Channel> channels = new ConcurrentHashMap<String, Channel>();
 
+    /**
+     * url对象
+     */
     private final URL url;
 
+    /**
+     * 通道
+     */
     private final ChannelHandler handler;
 
     public NettyHandler(URL url, ChannelHandler handler) {
@@ -61,11 +72,14 @@ public class NettyHandler extends SimpleChannelHandler {
 
     @Override
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+        // 获得通道实例
         NettyChannel channel = NettyChannel.getOrAddChannel(ctx.getChannel(), url, handler);
         try {
             if (channel != null) {
+                // 保存该通道，加入到集合中
                 channels.put(NetUtils.toAddressString((InetSocketAddress) ctx.getChannel().getRemoteAddress()), channel);
             }
+            // 连接
             handler.connected(channel);
         } finally {
             NettyChannel.removeChannelIfDisconnected(ctx.getChannel());

@@ -85,18 +85,28 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * 因为之前客户端消息体编码的时候是按照dubbo版本号、服务接口名、服务接口版本、方法名、参数类型、方法参数值、请求额外参数attachment
+     * 的顺序编码的，因此解码时也按照此顺序解码
+     * 编码在下面方法中
+     * com.alibaba.dubbo.rpc.protocol.dubbo.DubboCodec#encodeRequestData(com.alibaba.dubbo.remoting.Channel, com.alibaba.dubbo.common.serialize.ObjectOutput, java.lang.Object, java.lang.String)
+     */
     @Override
     public Object decode(Channel channel, InputStream input) throws IOException {
         ObjectInput in = CodecSupport.getSerialization(channel.getUrl(), serializationType)
                 .deserialize(channel.getUrl(), input);
 
+        //读取框架版本
         String dubboVersion = in.readUTF();
         request.setVersion(dubboVersion);
         setAttachment(Constants.DUBBO_VERSION_KEY, dubboVersion);
 
+        //读取调用接口
         setAttachment(Constants.PATH_KEY, in.readUTF());
+        //读取接口指定的版本号。默认为0.0.0
         setAttachment(Constants.VERSION_KEY, in.readUTF());
 
+        //读取方法参数类型
         setMethodName(in.readUTF());
         try {
             Object[] args;
@@ -110,6 +120,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
                 args = new Object[pts.length];
                 for (int i = 0; i < args.length; i++) {
                     try {
+                        //依次读取方法参数值
                         args[i] = in.readObject(pts[i]);
                     } catch (Exception e) {
                         if (log.isWarnEnabled()) {
@@ -120,6 +131,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
             }
             setParameterTypes(pts);
 
+            //读取隐式参数
             Map<String, String> map = (Map<String, String>) in.readObject(Map.class);
             if (map != null && map.size() > 0) {
                 Map<String, String> attachment = getAttachments();
@@ -130,6 +142,7 @@ public class DecodeableRpcInvocation extends RpcInvocation implements Codec, Dec
                 setAttachments(attachment);
             }
             //decode argument ,may be callback
+            //处理异步参数回调。如果有则在服务端创建Reference代理实例
             for (int i = 0; i < args.length; i++) {
                 args[i] = decodeInvocationArgument(channel, this, pts, i, args[i]);
             }

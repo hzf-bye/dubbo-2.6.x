@@ -23,6 +23,13 @@ import java.net.InetSocketAddress;
 /**
  * Endpoint. (API/SPI, Prototype, ThreadSafe)
  *
+ * dubbo抽象出一个端的概念，也就是Endpoint接口，这个端就是一个点，而点对点之间是可以双向传输。
+ * 在端的基础上在衍生出通道、客户端以及服务端的概念，也就是下面要介绍的Channel、Client、Server三个接口。
+ * 在传输层，其实Client和Server的区别只是在语义上区别，并不区分请求和应答职责，
+ * 在交换层客户端和服务端也是一个点，但是已经是有方向的点，所以区分了明确的请求和应答职责。
+ * 两者都具备发送的能力，只是客户端和服务端所关注的事情不一样，这个在后面会分开介绍，
+ * 而Endpoint接口抽象的方法就是它们共同拥有的方法。这也就是它们都能被抽象成端的原因
+ *
  *
  * @see com.alibaba.dubbo.remoting.Channel
  * @see com.alibaba.dubbo.remoting.Client
@@ -32,6 +39,7 @@ public interface Endpoint {
 
     /**
      * get url.
+     * 获得该端的url
      *
      * @return url
      */
@@ -39,6 +47,7 @@ public interface Endpoint {
 
     /**
      * get channel handler.
+     * 获得该端的通道处理器
      *
      * @return channel handler
      */
@@ -46,6 +55,7 @@ public interface Endpoint {
 
     /**
      * get local address.
+     * 获得该端的本地地址
      *
      * @return local address.
      */
@@ -53,6 +63,7 @@ public interface Endpoint {
 
     /**
      * send message.
+     * 发送消息
      *
      * @param message
      * @throws RemotingException
@@ -61,6 +72,8 @@ public interface Endpoint {
 
     /**
      * send message.
+     * 发送消息，sent是 是否已经过发送的标记
+     * 为了区分是否是第一次发送消息。
      *
      * @param message
      * @param sent    already sent to socket?
@@ -69,18 +82,24 @@ public interface Endpoint {
 
     /**
      * close the channel.
+     * 关闭
      */
     void close();
 
     /**
      * Graceful close the channel.
+     * 优雅的关闭，也就是加入了等待时间
      */
     void close(int timeout);
 
+    /**
+     * 开始关闭
+     */
     void startClose();
 
     /**
      * is closed.
+     * 判断是否已经关闭
      *
      * @return closed
      */

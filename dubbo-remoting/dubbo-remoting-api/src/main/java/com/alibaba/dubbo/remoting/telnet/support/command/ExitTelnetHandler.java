@@ -23,6 +23,7 @@ import com.alibaba.dubbo.remoting.telnet.support.Help;
 
 /**
  * ExitTelnetHandler
+ * 该类实现了TelnetHandler接口，封装了exit命令的实现。
  */
 @Activate
 @Help(parameter = "", summary = "Exit the telnet.", detail = "Exit the telnet.")
@@ -30,6 +31,7 @@ public class ExitTelnetHandler implements TelnetHandler {
 
     @Override
     public String telnet(Channel channel, String message) {
+        // 关闭通道
         channel.close();
         return null;
     }
