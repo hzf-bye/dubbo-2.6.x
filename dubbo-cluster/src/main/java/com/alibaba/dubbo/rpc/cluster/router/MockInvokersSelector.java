@@ -40,13 +40,18 @@ public class MockInvokersSelector extends AbstractRouter {
     @Override
     public <T> List<Invoker<T>> route(final List<Invoker<T>> invokers,
                                       URL url, final Invocation invocation) throws RpcException {
+        // 如果附加值为空，则直接
         if (invocation.getAttachments() == null) {
+            // 获得普通的invoker集合
             return getNormalInvokers(invokers);
         } else {
+            // 获得是否需要降级的值
             String value = invocation.getAttachments().get(Constants.INVOCATION_NEED_MOCK);
+            // 如果为空，则获得普通的Invoker集合
             if (value == null)
                 return getNormalInvokers(invokers);
             else if (Boolean.TRUE.toString().equalsIgnoreCase(value)) {
+                // 获得MockedInvoker集合
                 return getMockedInvokers(invokers);
             }
         }
@@ -54,9 +59,11 @@ public class MockInvokersSelector extends AbstractRouter {
     }
 
     private <T> List<Invoker<T>> getMockedInvokers(final List<Invoker<T>> invokers) {
+        // 如果没有MockedInvoker，则返回null
         if (!hasMockProviders(invokers)) {
             return null;
         }
+        // 找到MockedInvoker，往sInvokers中加入，并且返回
         List<Invoker<T>> sInvokers = new ArrayList<Invoker<T>>(1);
         for (Invoker<T> invoker : invokers) {
             if (invoker.getUrl().getProtocol().equals(Constants.MOCK_PROTOCOL)) {
@@ -67,9 +74,11 @@ public class MockInvokersSelector extends AbstractRouter {
     }
 
     private <T> List<Invoker<T>> getNormalInvokers(final List<Invoker<T>> invokers) {
+        // 如果没有MockedInvoker，则返回普通的Invoker 集合
         if (!hasMockProviders(invokers)) {
             return invokers;
         } else {
+            // 否则 去除MockedInvoker，把普通的Invoker 集合返回
             List<Invoker<T>> sInvokers = new ArrayList<Invoker<T>>(invokers.size());
             for (Invoker<T> invoker : invokers) {
                 if (!invoker.getUrl().getProtocol().equals(Constants.MOCK_PROTOCOL)) {
@@ -81,6 +90,7 @@ public class MockInvokersSelector extends AbstractRouter {
     }
 
     private <T> boolean hasMockProviders(final List<Invoker<T>> invokers) {
+        // 如果有一个是MockInvoker，则返回true
         boolean hasMockProvider = false;
         for (Invoker<T> invoker : invokers) {
             if (invoker.getUrl().getProtocol().equals(Constants.MOCK_PROTOCOL)) {

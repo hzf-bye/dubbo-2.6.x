@@ -29,6 +29,7 @@ public interface ConfiguratorFactory {
 
     /**
      * get the configurator instance.
+     * 获得configurator实例
      *
      * @param url - configurator url.
      * @return configurator instance.

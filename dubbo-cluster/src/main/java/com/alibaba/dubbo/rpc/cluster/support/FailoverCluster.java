@@ -23,6 +23,10 @@ import com.alibaba.dubbo.rpc.cluster.Directory;
 
 /**
  * {@link FailoverClusterInvoker}
+ * 失败自动切换，当调用出现失败的时候，会自动切换集群中其他服务器，用户可以通过设置retries=2来设置重试次数；
+ * FailoverCluster是dubbo的默认容错机制，会对请求做负载均衡；
+ * 通常用于读操作或者幂等的写操作上，但重试会导致接口的延迟增大，在下游机器负载已经达到极限时，重试容易加重下游服务的负载。
+ *
  *
  */
 public class FailoverCluster implements Cluster {
@@ -31,6 +35,7 @@ public class FailoverCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建FailoverClusterInvoker
         return new FailoverClusterInvoker<T>(directory);
     }
 

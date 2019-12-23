@@ -22,6 +22,7 @@ import com.alibaba.dubbo.rpc.cluster.RouterFactory;
 
 /**
  * ScriptRouterFactory
+ * 该类是基于脚本的路由规则工厂类。
  * <p>
  * Example URLS used by Script Router Factory：
  * <ol>
@@ -39,6 +40,7 @@ public class ScriptRouterFactory implements RouterFactory {
 
     @Override
     public Router getRouter(URL url) {
+        // 创建ScriptRouter
         return new ScriptRouter(url);
     }
 

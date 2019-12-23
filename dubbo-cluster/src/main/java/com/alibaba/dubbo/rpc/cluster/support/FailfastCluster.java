@@ -23,6 +23,10 @@ import com.alibaba.dubbo.rpc.cluster.Directory;
 
 /**
  * {@link FailfastClusterInvoker}
+ * 失败安全，出现异常时，快速返回异常结果，不做任何重试。
+ * 该容错机制对请求做负载均衡，通常使用在非幂等接口的调用上。
+ * 该机制受网络抖动的影响较大。
+ *
  *
  */
 public class FailfastCluster implements Cluster {
@@ -31,6 +35,7 @@ public class FailfastCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建FailfastClusterInvoker
         return new FailfastClusterInvoker<T>(directory);
     }
 

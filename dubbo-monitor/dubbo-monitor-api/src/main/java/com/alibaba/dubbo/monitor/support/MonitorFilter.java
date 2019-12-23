@@ -39,6 +39,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * MonitorFilter. (SPI, Singleton, ThreadSafe)
+ * 监控并统计所有接口的调用情况，如成功、失败、耗时。
+ * 后续DubboMonitor会定时吧该过滤器收集到的数据发送到Dubbo-Monitor服务上
  */
 @Activate(group = {Constants.PROVIDER, Constants.CONSUMER})
 public class MonitorFilter implements Filter {
@@ -56,10 +58,12 @@ public class MonitorFilter implements Filter {
     // intercepting invocation
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        //如果配置了监控中心
         if (invoker.getUrl().hasParameter(Constants.MONITOR_KEY)) {
             RpcContext context = RpcContext.getContext(); // provider must fetch context before invoke() gets called
             String remoteHost = context.getRemoteHost();
             long start = System.currentTimeMillis(); // record start timestamp
+            //记录此接口的方法的调用次数+1
             getConcurrent(invoker, invocation).incrementAndGet(); // count up
             try {
                 Result result = invoker.invoke(invocation); // proceed invocation chain

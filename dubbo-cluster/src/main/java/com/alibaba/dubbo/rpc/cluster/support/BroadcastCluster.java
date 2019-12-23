@@ -23,12 +23,15 @@ import com.alibaba.dubbo.rpc.cluster.Directory;
 
 /**
  * BroadcastCluster
- *
+ * 广播调用所有可用的服务，任意一个节点报错则报错。
+ * 由于是广播，因此请求不需要做负载均衡。
+ * 通常用于通知所有提供者更新缓存或日志等本地资源信息
  */
 public class BroadcastCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建一个BroadcastClusterInvoker
         return new BroadcastClusterInvoker<T>(directory);
     }
 

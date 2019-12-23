@@ -21,12 +21,18 @@ import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.cluster.Cluster;
 import com.alibaba.dubbo.rpc.cluster.Directory;
 
+/**
+ * Mergeable可以自动把多个节点得到的结果进行合并。
+ * 按组合并返回结果 ，比如菜单服务，接口一样，但有多种实现，用group区分，
+ * 现在消费方需从每种group中调用一次返回结果，合并结果返回，这样就可以实现聚合菜单项。这个时候就要用到分组聚合。
+ */
 public class MergeableCluster implements Cluster {
 
     public static final String NAME = "mergeable";
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建MergeableClusterInvoker
         return new MergeableClusterInvoker<T>(directory);
     }
 

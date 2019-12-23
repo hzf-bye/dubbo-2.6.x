@@ -32,6 +32,9 @@ import java.util.List;
  * Usually used for non-idempotent write operations
  *
  * <a href="http://en.wikipedia.org/wiki/Fail-fast">Fail-fast</a>
+ * 失败安全，出现异常时，快速返回异常结果，不做任何重试。
+ * 该容错机制对请求做负载均衡，通常使用在非幂等接口的调用上。
+ * 该机制受网络抖动的影响较大。
  *
  */
 public class FailfastClusterInvoker<T> extends AbstractClusterInvoker<T> {
@@ -42,11 +45,15 @@ public class FailfastClusterInvoker<T> extends AbstractClusterInvoker<T> {
 
     @Override
     public Result doInvoke(Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
+        // 检测invokers是否为空
         checkInvokers(invokers, invocation);
+        // 选择一个invoker
         Invoker<T> invoker = select(loadbalance, invocation, invokers, null);
         try {
+            // 调用
             return invoker.invoke(invocation);
         } catch (Throwable e) {
+            //调用失败抛出异常
             if (e instanceof RpcException && ((RpcException) e).isBiz()) { // biz exception.
                 throw (RpcException) e;
             }

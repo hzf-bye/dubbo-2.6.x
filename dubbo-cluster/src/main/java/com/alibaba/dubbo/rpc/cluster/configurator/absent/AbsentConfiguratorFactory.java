@@ -22,12 +22,14 @@ import com.alibaba.dubbo.rpc.cluster.ConfiguratorFactory;
 
 /**
  * AbsentConfiguratorFactory
+ * 该类是不存在时添加配置的工厂类，用来创建AbsentConfigurator。
  *
  */
 public class AbsentConfiguratorFactory implements ConfiguratorFactory {
 
     @Override
     public Configurator getConfigurator(URL url) {
+        // 创建一个AbsentConfigurator。
         return new AbsentConfigurator(url);
     }
 

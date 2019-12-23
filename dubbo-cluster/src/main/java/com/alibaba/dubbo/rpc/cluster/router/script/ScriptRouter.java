@@ -47,10 +47,19 @@ public class ScriptRouter extends AbstractRouter {
 
     private static final int DEFAULT_PRIORITY = 1;
 
+    /**
+     * 脚本类型 与 ScriptEngine 的映射缓存
+     */
     private static final Map<String, ScriptEngine> engines = new ConcurrentHashMap<String, ScriptEngine>();
 
+    /**
+     * 脚本
+     */
     private final ScriptEngine engine;
 
+    /**
+     * 路由规则
+     */
     private final String rule;
 
     public ScriptRouter(URL url) {
@@ -76,18 +85,26 @@ public class ScriptRouter extends AbstractRouter {
         this.rule = rule;
     }
 
+    /**
+     * 该方法是根据路由规则选择invoker的实现逻辑。
+     */
     @Override
     @SuppressWarnings("unchecked")
     public <T> List<Invoker<T>> route(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
         try {
             List<Invoker<T>> invokersCopy = new ArrayList<Invoker<T>>(invokers);
             Compilable compilable = (Compilable) engine;
+            // 创建脚本
             Bindings bindings = engine.createBindings();
+            // 设置invokers、invocation、context
             bindings.put("invokers", invokersCopy);
             bindings.put("invocation", invocation);
             bindings.put("context", RpcContext.getContext());
+            // 编译脚本
             CompiledScript function = compilable.compile(rule);
+            // 执行脚本
             Object obj = function.eval(bindings);
+            // 根据结果类型，转换成 (List<Invoker<T>> 类型返回
             if (obj instanceof Invoker[]) {
                 invokersCopy = Arrays.asList((Invoker<T>[]) obj);
             } else if (obj instanceof Object[]) {
@@ -101,6 +118,7 @@ public class ScriptRouter extends AbstractRouter {
             return invokersCopy;
         } catch (ScriptException e) {
             //fail then ignore rule .invokers.
+            // 发生异常，忽略路由规则，返回全 `invokers` 集合
             logger.error("route error , rule has been ignored. rule: " + rule + ", method:" + invocation.getMethodName() + ", url: " + RpcContext.getContext().getUrl(), e);
             return invokers;
         }

@@ -23,10 +23,16 @@ import com.alibaba.dubbo.rpc.cluster.Directory;
 
 /**
  * mock impl
+ * 提供调用失败时，返回伪造的响应结果。
+ * 或者直接强制返回伪造的结果，不会发起远程调用。
+ * 参考官方文档 http://dubbo.apache.org/zh-cn/docs/user/demos/local-mock.html
  *
  */
 public class MockClusterWrapper implements Cluster {
 
+    /**
+     * 默认为FailoverCluster
+     */
     private Cluster cluster;
 
     public MockClusterWrapper(Cluster cluster) {
@@ -35,6 +41,7 @@ public class MockClusterWrapper implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建MockClusterInvoker
         return new MockClusterInvoker<T>(directory,
                 this.cluster.join(directory));
     }

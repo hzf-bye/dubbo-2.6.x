@@ -26,13 +26,17 @@ import com.alibaba.dubbo.rpc.RpcException;
 
 /**
  * ClassLoaderInvokerFilter
+ * 用于切换不同线程的类加载器，服务调用完成后会还原回去
+ * 它是在服务提供者侧的过滤。
  */
 @Activate(group = Constants.PROVIDER, order = -30000)
 public class ClassLoaderFilter implements Filter {
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 获得当前线程的类加载器
         ClassLoader ocl = Thread.currentThread().getContextClassLoader();
+        // 设置invoker携带的服务的类加载器
         Thread.currentThread().setContextClassLoader(invoker.getInterface().getClassLoader());
         try {
             return invoker.invoke(invocation);

@@ -23,6 +23,8 @@ import com.alibaba.dubbo.rpc.cluster.Directory;
 
 /**
  * {@link FailbackClusterInvoker}
+ * 在调用失败后，返回一个空结果给服务提供者，并且会自动记录在失败队列中，并且有一个定时线程池定时重试，
+ * 适用于一些异步或者最终一致性的或者消息通知等操作。请求会做负载均衡。
  *
  */
 public class FailbackCluster implements Cluster {
@@ -31,6 +33,7 @@ public class FailbackCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // 创建一个FailbackClusterInvoker
         return new FailbackClusterInvoker<T>(directory);
     }
 

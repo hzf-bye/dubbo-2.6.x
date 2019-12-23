@@ -30,6 +30,9 @@ import java.util.List;
 
 /**
  * BroadcastClusterInvoker
+ * 广播调用所有可用的服务，任意一个节点报错则报错。
+ * 由于是广播，因此请求不需要做负载均衡。
+ * 通常用于通知所有提供者更新缓存或日志等本地资源信息
  *
  */
 public class BroadcastClusterInvoker<T> extends AbstractClusterInvoker<T> {
@@ -43,10 +46,13 @@ public class BroadcastClusterInvoker<T> extends AbstractClusterInvoker<T> {
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Result doInvoke(final Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
+        // 检测invokers是否为空
         checkInvokers(invokers, invocation);
+        // 把invokers放到上下文
         RpcContext.getContext().setInvokers((List) invokers);
         RpcException exception = null;
         Result result = null;
+        // 遍历invokers，逐个调用，在循环调用结束后，只要任意一台报错就报错
         for (Invoker<T> invoker : invokers) {
             try {
                 result = invoker.invoke(invocation);

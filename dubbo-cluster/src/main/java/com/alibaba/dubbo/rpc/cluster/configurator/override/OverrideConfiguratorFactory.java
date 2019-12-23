@@ -28,6 +28,7 @@ public class OverrideConfiguratorFactory implements ConfiguratorFactory {
 
     @Override
     public Configurator getConfigurator(URL url) {
+        // 创建OverrideConfigurator
         return new OverrideConfigurator(url);
     }
 

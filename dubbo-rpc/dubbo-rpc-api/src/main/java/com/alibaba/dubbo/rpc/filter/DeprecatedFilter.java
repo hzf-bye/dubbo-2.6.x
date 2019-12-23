@@ -31,23 +31,32 @@ import java.util.Set;
 
 /**
  * DeprecatedInvokerFilter
+ * 该过滤器的作用是调用了废弃的方法时打印错误日志。
  */
 @Activate(group = Constants.CONSUMER, value = Constants.DEPRECATED_KEY)
 public class DeprecatedFilter implements Filter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeprecatedFilter.class);
 
+    /**
+     * 日志集合
+     */
     private static final Set<String> logged = new ConcurrentHashSet<String>();
 
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 获得key 服务+方法
         String key = invoker.getInterface().getName() + "." + invocation.getMethodName();
+        // 如果集合中没有该key
         if (!logged.contains(key)) {
+            // 则加入集合
             logged.add(key);
+            // 如果该服务方法是废弃的，则打印错误日志
             if (invoker.getUrl().getMethodParameter(invocation.getMethodName(), Constants.DEPRECATED_KEY, false)) {
                 LOGGER.error("The service method " + invoker.getInterface().getName() + "." + getMethodSignature(invocation) + " is DEPRECATED! Declare from " + invoker.getUrl());
             }
         }
+        // 调用下一个调用链
         return invoker.invoke(invocation);
     }
 

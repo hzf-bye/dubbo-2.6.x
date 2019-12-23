@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * TraceFilter
+ * trace指令的使用
  */
 @Activate(group = Constants.PROVIDER)
 public class TraceFilter implements Filter {

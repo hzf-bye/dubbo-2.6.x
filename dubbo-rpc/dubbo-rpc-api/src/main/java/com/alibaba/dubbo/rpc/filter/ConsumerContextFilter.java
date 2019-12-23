@@ -30,26 +30,37 @@ import com.alibaba.dubbo.rpc.RpcResult;
 
 /**
  * ConsumerContextInvokerFilter
+ * 为消费者把一些上下文信息设置到当前线程的RpcContext中
  */
 @Activate(group = Constants.CONSUMER, order = -10000)
 public class ConsumerContextFilter implements Filter {
 
+    /**
+     * 可以看到RpcContext记录了一次调用状态信息，然后先调用后面的调用链，再回来把附加值设置到RpcContext中。
+     * 然后返回RpcResult，再清空，这样是因为后面的调用链中的附加值对前面的调用链是不可见的。
+     */
     @Override
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        // 设置rpc上下文
         RpcContext.getContext()
                 .setInvoker(invoker)
                 .setInvocation(invocation)
                 .setLocalAddress(NetUtils.getLocalHost(), 0)
                 .setRemoteAddress(invoker.getUrl().getHost(),
                         invoker.getUrl().getPort());
+        // 如果该会话域是rpc会话域
         if (invocation instanceof RpcInvocation) {
+            // 设置实体域
             ((RpcInvocation) invocation).setInvoker(invoker);
         }
         try {
+            // 调用下个调用链
             RpcResult result = (RpcResult) invoker.invoke(invocation);
+            // 设置附加值
             RpcContext.getServerContext().setAttachments(result.getAttachments());
             return result;
         } finally {
+            //情况附加值
             RpcContext.getContext().clearAttachments();
         }
     }

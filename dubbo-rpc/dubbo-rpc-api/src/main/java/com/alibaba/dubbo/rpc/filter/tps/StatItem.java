@@ -18,16 +18,34 @@ package com.alibaba.dubbo.rpc.filter.tps;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * 该类是统计的数据结构。
+ */
 class StatItem {
 
+    /**
+     * 服务名
+     */
     private String name;
 
+    /**
+     * 最后一次重置的时间
+     */
     private long lastResetTime;
 
+    /**
+     * 周期
+     */
     private long interval;
 
+    /**
+     * 剩余多少流量
+     */
     private AtomicInteger token;
 
+    /**
+     * 限制大小
+     */
     private int rate;
 
     StatItem(String name, int rate, long interval) {
@@ -40,6 +58,7 @@ class StatItem {
 
     public boolean isAllowable() {
         long now = System.currentTimeMillis();
+        // 如果限制的时间大于最后一次时间加上周期，则重置
         if (now > lastResetTime + interval) {
             token.set(rate);
             lastResetTime = now;
@@ -47,11 +66,13 @@ class StatItem {
 
         int value = token.get();
         boolean flag = false;
+        // 直到有流量
         while (value > 0 && !flag) {
             flag = token.compareAndSet(value, value - 1);
             value = token.get();
         }
 
+        // 返回flag
         return flag;
     }
 

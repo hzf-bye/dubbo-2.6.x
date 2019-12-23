@@ -19,6 +19,8 @@ package com.alibaba.dubbo.rpc.cluster.merger;
 import com.alibaba.dubbo.rpc.cluster.Merger;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ArrayMerger implements Merger<Object[]> {
 
@@ -26,33 +28,46 @@ public class ArrayMerger implements Merger<Object[]> {
 
     @Override
     public Object[] merge(Object[]... others) {
+        // 如果长度为0  则直接返回
         if (others.length == 0) {
             return null;
         }
+        // 总长
         int totalLen = 0;
+        // 遍历所有需要合并的对象
         for (int i = 0; i < others.length; i++) {
             Object item = others[i];
             if (item != null && item.getClass().isArray()) {
+                // 如果为数组，累加数组长度
                 totalLen += Array.getLength(item);
             } else {
                 throw new IllegalArgumentException((i + 1) + "th argument is not an array");
             }
         }
 
+
         if (totalLen == 0) {
             return null;
         }
 
+        // 获得数组类型
         Class<?> type = others[0].getClass().getComponentType();
 
+        // 创建长度
         Object result = Array.newInstance(type, totalLen);
         int index = 0;
+        // 遍历需要合并的对象
         for (Object array : others) {
+            // 遍历每个数组中的数据
             for (int i = 0; i < Array.getLength(array); i++) {
+                // 加入到最终结果中
                 Array.set(result, index++, Array.get(array, i));
             }
         }
         return (Object[]) result;
     }
+
+
+
 
 }

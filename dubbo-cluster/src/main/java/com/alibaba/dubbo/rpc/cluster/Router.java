@@ -27,6 +27,7 @@ import java.util.List;
  * Router. (SPI, Prototype, ThreadSafe)
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Routing">Routing</a>
+ * 该接口是路由规则的接口，定义的两个方法，第一个方法是获得路由规则的url，第二个方法是筛选出跟规则匹配的Invoker集合。
  *
  * @see com.alibaba.dubbo.rpc.cluster.Cluster#join(Directory)
  * @see com.alibaba.dubbo.rpc.cluster.Directory#list(Invocation)
@@ -35,6 +36,7 @@ public interface Router extends Comparable<Router>{
 
     /**
      * get the router url.
+     * 获得路由规则的url
      *
      * @return url
      */
@@ -42,7 +44,7 @@ public interface Router extends Comparable<Router>{
 
     /**
      * route.
-     *
+     * 筛选出跟规则匹配的Invoker集合
      * @param invokers
      * @param url        refer url
      * @param invocation

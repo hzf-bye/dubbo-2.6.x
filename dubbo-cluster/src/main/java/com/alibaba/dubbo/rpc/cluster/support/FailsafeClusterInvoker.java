@@ -33,6 +33,8 @@ import java.util.List;
  * Usually used to write audit logs and other operations
  *
  * <a href="http://en.wikipedia.org/wiki/Fail-safe">Fail-safe</a>
+ * 当出现异常事，直接忽略异常。会对请求做负载均衡，通常使用在"佛系"的调用场景，
+ * 即不关心调用是否成功，并且不想抛异常影响外层调用，仅会打印异常，如某些不重要的日志同步，即使出现异常也无所谓。
  *
  */
 public class FailsafeClusterInvoker<T> extends AbstractClusterInvoker<T> {
@@ -45,11 +47,16 @@ public class FailsafeClusterInvoker<T> extends AbstractClusterInvoker<T> {
     @Override
     public Result doInvoke(Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         try {
+            // 检测invokers是否为空
             checkInvokers(invokers, invocation);
+            // 选择 Invoker
             Invoker<T> invoker = select(loadbalance, invocation, invokers, null);
+            // 进行远程调用
             return invoker.invoke(invocation);
         } catch (Throwable e) {
+            // 打印错误日志，但不抛出
             logger.error("Failsafe ignore exception: " + e.getMessage(), e);
+            // 返回空结果忽略错误
             return new RpcResult(); // ignore
         }
     }

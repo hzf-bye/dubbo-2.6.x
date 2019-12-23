@@ -66,20 +66,37 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     private static final Logger logger = LoggerFactory.getLogger(RegistryDirectory.class);
 
+    /**
+     * cluster实现类对象
+     */
     private static final Cluster cluster = ExtensionLoader.getExtensionLoader(Cluster.class).getAdaptiveExtension();
 
+    /**
+     * 配置规则工厂
+     */
     private static final RouterFactory routerFactory = ExtensionLoader.getExtensionLoader(RouterFactory.class).getAdaptiveExtension();
 
+    /**
+     * 路由工厂
+     */
     private static final ConfiguratorFactory configuratorFactory = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class).getAdaptiveExtension();
     /**
-     * 提供这URL#getServiceKey
+     * 提供者URL#getServiceKey
      */
     private final String serviceKey; // Initialization at construction time, assertion not null
     /**
      * 提供者Class
      */
     private final Class<T> serviceType; // Initialization at construction time, assertion not null
+
+    /**
+     * 消费者URL的配置项 Map
+     */
     private final Map<String, String> queryMap; // Initialization at construction time, assertion not null
+
+    /**
+     * 原始的目录 URL
+     */
     private final URL directoryUrl; // Initialization at construction time, assertion not null, and always assign non null value
     /**
      * 存储的是服务提供方的所有方法
@@ -89,10 +106,26 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      * directoryUrl中的group是否包含多个值
      */
     private final boolean multiGroup;
+
+    /**
+     * 协议
+     */
     private Protocol protocol; // Initialization at the time of injection, the assertion is not null
+
+    /**
+     * 注册中心
+     */
     private Registry registry; // Initialization at the time of injection, the assertion is not null
+
+    /**
+     *  是否禁止访问
+     */
     private volatile boolean forbidden = false;
 
+    /**
+     * 覆盖目录的url
+     * 提供者URL，但是parameters都重置为此消费者信息(queryMap)
+     */
     private volatile URL overrideDirectoryUrl; // Initialization at construction time, assertion not null, and always assign non null value
 
     private volatile URL registeredConsumerUrl;
@@ -102,6 +135,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      * Priority: override>-D>consumer>provider
      * Rule one: for a certain provider <ip:port,timeout=100>
      * Rule two: for all providers <* ,timeout=5000>
+     * 配置规则数组
      */
     private volatile List<Configurator> configurators; // The initial value is null and the midway may be assigned to null, please use the local variable reference
 
@@ -115,13 +149,20 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     // Map<methodName, Invoker> cache service method to invokers mapping.
     /**
      * 提供者方法名与提供者url对应的Invoker之间的映射
+     *
      */
     private volatile Map<String, List<Invoker<T>>> methodInvokerMap; // The initial value is null and the midway may be assigned to null, please use the local variable reference
 
     // Set<invokerUrls> cache invokeUrls to invokers mapping.
-    //缓存的是当前消费者消费的提供者URL
+    /**
+     * 缓存的是当前消费者消费的提供者URL
+     */
     private volatile Set<URL> cachedInvokerUrls; // The initial value is null and the midway may be assigned to null, please use the local variable reference
 
+    /**
+     * @param serviceType 提供者Class
+     * @param url 提供者URL
+     */
     public RegistryDirectory(Class<T> serviceType, URL url) {
         super(url);
         if (serviceType == null)
@@ -142,33 +183,60 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      * Convert override urls to map for use when re-refer.
      * Send all rules every time, the urls will be reassembled and calculated
      *
+     * 参看文档http://dubbo.apache.org/zh-cn/docs/user/demos/config-rule-deprecated.html
+     *
+     * override://127.0.0.1:20880/com.test.DemoService?category=configurators&dynamic=true&enabled=true&application=test&timeout=1000
+     * 1.override://代表override协议，必填。
+     * 2.127.0.0.1:20880表示只是覆盖此提供者的一些属性，必填。
+     * 3.com.test.DemoService标傲世只对指定的服务生效，必填。
+     * 4.category=configurators表示这个参数是动态配置类型的，必填。
+     * 5.dynamic=true表示是否持久化，false则为持久化数据。注册方退出，数据依旧会保存在注册中心。必填。
+     * 6.enabled=true表示覆盖规则是否生效，默认生效，可以不填。
+     * 7.application=test表示只对某个应用生效，不填则对所有应用生效。可以不填
+     * 8.timeout=1000表示满足前面条件的timeout参数覆盖为1000
+     *
+     * dubbo-admin上更新路由规则或者通过是参数"override://"协议实现的，dubbo-admin的使用方法可以查看官方文档。
+     * override协议的URL会覆盖更新本地URL中对应的参数。如果是"empty://"协议的URL，则会情况本地的配置，这里调用
+     * 会调用Configurator接口来实现该功能。
+     *
      * @param urls Contract:
      *             </br>1.override://0.0.0.0/...( or override://ip:port...?anyhost=true)&para1=value1... means global rules (all of the providers take effect)
+     *             如果是0.0.0.0表示所有提供者生效。 下面代码会remove掉anyhost参数为何注释还有？
      *             </br>2.override://ip:port...?anyhost=false Special rules (only for a certain provider)
+     *             具体的ip则表示只有此提供者生效
      *             </br>3.override:// rule is not supported... ,needs to be calculated by registry itself.
      *             </br>4.override://0.0.0.0/ without parameters means clearing the override
      * @return
+     * 该方法是处理配置规则url集合，转换覆盖url映射以便在重新引用时使用，每次发送所有规则，网址将被重新组装和计算。
      */
     public static List<Configurator> toConfigurators(List<URL> urls) {
+        // 如果为空，则返回空集合
         if (urls == null || urls.isEmpty()) {
             return Collections.emptyList();
         }
 
         List<Configurator> configurators = new ArrayList<Configurator>(urls.size());
+        // 遍历url集合
         for (URL url : urls) {
+            //如果是协议是empty的值，则清空配置集合
             if (Constants.EMPTY_PROTOCOL.equals(url.getProtocol())) {
                 configurators.clear();
                 break;
             }
+            // 覆盖的参数集合
             Map<String, String> override = new HashMap<String, String>(url.getParameters());
             //The anyhost parameter of override may be added automatically, it can't change the judgement of changing url
+            // 覆盖的anyhost参数可以自动添加，也不能改变更改url的判断
             override.remove(Constants.ANYHOST_KEY);
+            // 如果需要覆盖添加的值为0，则清空配置
             if (override.size() == 0) {
                 configurators.clear();
                 continue;
             }
+            // 加入配置规则集合
             configurators.add(configuratorFactory.getConfigurator(url));
         }
+        // 排序
         Collections.sort(configurators);
         return configurators;
     }
@@ -190,6 +258,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     @Override
     public void destroy() {
+        // 如果销毁了，则返回
         if (isDestroyed()) {
             return;
         }
@@ -197,6 +266,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         // unregister.
         try {
             if (getRegisteredConsumerUrl() != null && registry != null && registry.isAvailable()) {
+                // 取消订阅
                 registry.unregister(getRegisteredConsumerUrl());
             }
         } catch (Throwable t) {
@@ -213,6 +283,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         }
         super.destroy(); // must be executed after unsubscribing
         try {
+            // 清空所有的invoker
             destroyAllInvokers();
         } catch (Throwable t) {
             logger.warn("Failed to destroy service " + serviceKey, t);
@@ -321,14 +392,16 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             // Allow to access
             this.forbidden = false;
             // local reference
+            // 引用老的 urlInvokerMap
             Map<String, Invoker<T>> oldUrlInvokerMap = this.urlInvokerMap;
             if (invokerUrls.isEmpty() && this.cachedInvokerUrls != null) {
+                // invokerUrls为空则说明注册中心，没有更新，直接使用本地的缓存
                 // 添加缓存 url 到 invokerUrls 中
                 invokerUrls.addAll(this.cachedInvokerUrls);
             } else {
                 this.cachedInvokerUrls = new HashSet<URL>();
                 //Cached invoker urls, convenient for comparison
-                //缓存invokerUrls列表，便于交叉对比
+                //缓存当前注册中心通知的invokerUrls列表，便于交叉对比
                 this.cachedInvokerUrls.addAll(invokerUrls);
             }
             if (invokerUrls.isEmpty()) {
@@ -349,6 +422,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 return;
             }
             // 合并多个组的 Invoker
+            // 若服务引用多 group ，则按照 method + group 聚合 Invoker 集合
             //服务提供者Invoker保存在这个map中
             this.methodInvokerMap = multiGroup ? toMergeMethodInvokerMap(newMethodInvokerMap) : newMethodInvokerMap;
             this.urlInvokerMap = newUrlInvokerMap;
@@ -416,24 +490,32 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      * @param urls
      * @return null : no routers ,do nothing
      * else :routers list
+     * 该方法是对url集合进行路由的解析，返回路由集合。
      */
     private List<Router> toRouters(List<URL> urls) {
         List<Router> routers = new ArrayList<Router>();
+        // 如果为空，则直接返回空集合
         if (urls == null || urls.isEmpty()) {
             return routers;
         }
         if (urls != null && !urls.isEmpty()) {
+            // 遍历url集合
             for (URL url : urls) {
+                // 如果为empty协议，则直接跳过
                 if (Constants.EMPTY_PROTOCOL.equals(url.getProtocol())) {
                     continue;
                 }
+                // 获得路由规则
                 String routerType = url.getParameter(Constants.ROUTER_KEY);
                 if (routerType != null && routerType.length() > 0) {
+                    // 设置协议
                     url = url.setProtocol(routerType);
                 }
                 try {
+                    // 获得路由
                     Router router = routerFactory.getRouter(url);
                     if (!routers.contains(router))
+                        // 加入集合
                         routers.add(router);
                 } catch (Throwable t) {
                     logger.error("convert router url to router error, url: " + url, t);
@@ -494,6 +576,8 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 continue;
             }
             // 合并 url
+            //该方法是合并 URL 参数，优先级为配置规则 > 服务消费者配置 > 服务提供者配置.
+            // 其中配置规则 this.configurators在dubbo-admin中设置
             URL url = mergeUrl(providerUrl);
 
             // The parameter urls are sorted
@@ -548,13 +632,16 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     /**
      * Merge url parameters. the order is: override > -D >Consumer > Provider
+     * 该方法是合并 URL 参数，优先级为配置规则 > 服务消费者配置 > 服务提供者配置.
      *
      * @param providerUrl
      * @return
      */
     private URL mergeUrl(URL providerUrl) {
+        // 合并消费端参数
         providerUrl = ClusterUtils.mergeUrl(providerUrl, queryMap); // Merge the consumer side parameters
 
+        // 合并配置规则
         List<Configurator> localConfigurators = this.configurators; // local reference
         if (localConfigurators != null && !localConfigurators.isEmpty()) {
             for (Configurator configurator : localConfigurators) {
@@ -562,11 +649,14 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             }
         }
 
+        // 不检查连接是否成功，总是创建 Invoker
         providerUrl = providerUrl.addParameter(Constants.CHECK_KEY, String.valueOf(false)); // Do not check whether the connection is successful or not, always create Invoker!
 
         // The combination of directoryUrl and override is at the end of notify, which can't be handled here
+        // 合并提供者参数，因为 directoryUrl 与 override 合并是在 notify 的最后，这里不能够处理
         this.overrideDirectoryUrl = this.overrideDirectoryUrl.addParametersIfAbsent(providerUrl.getParameters()); // Merge the provider side parameters
 
+        // 1.0版本兼容
         if ((providerUrl.getPath() == null || providerUrl.getPath().length() == 0)
                 && "dubbo".equals(providerUrl.getProtocol())) { // Compatible version 1.0
             //fix by tony.chenl DUBBO-44
@@ -592,6 +682,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         if (routers != null) {
             for (Router router : routers) {
                 // If router's url not null and is not route by runtime,we filter invokers here
+                // 如果获取到的runtime为true则在com.alibaba.dubbo.rpc.cluster.directory.AbstractDirectory.list处路由
                 if (router.getUrl() != null && !router.getUrl().getParameter(Constants.RUNTIME_KEY, false)) {
                     invokers = router.route(invokers, getConsumerUrl(), invocation);
                 }
@@ -667,14 +758,17 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      */
     private void destroyAllInvokers() {
         Map<String, Invoker<T>> localUrlInvokerMap = this.urlInvokerMap; // local reference
+        // 如果invoker集合不为空
         if (localUrlInvokerMap != null) {
             for (Invoker<T> invoker : new ArrayList<Invoker<T>>(localUrlInvokerMap.values())) {
                 try {
+                    // 销毁invoker
                     invoker.destroy();
                 } catch (Throwable t) {
                     logger.warn("Failed to destroy service " + serviceKey + " to provider " + invoker.getUrl(), t);
                 }
             }
+            // 清空集合
             localUrlInvokerMap.clear();
         }
         methodInvokerMap = null;

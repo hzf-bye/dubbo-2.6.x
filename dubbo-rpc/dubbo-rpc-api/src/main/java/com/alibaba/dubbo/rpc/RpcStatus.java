@@ -31,26 +31,93 @@ import java.util.concurrent.atomic.AtomicLong;
  * @see com.alibaba.dubbo.rpc.filter.ActiveLimitFilter
  * @see com.alibaba.dubbo.rpc.filter.ExecuteLimitFilter
  * @see com.alibaba.dubbo.rpc.cluster.loadbalance.LeastActiveLoadBalance
+ * RpcStatus总是记录的是某个提供者的一些信息，详见属性注释
+ *
+ * RpcStatus中的属性会在ActiveLimitFilter与ExecuteLimitFilter的invoke方法中赋值，
+ * ActiveLimitFilter是消费者侧的过滤器
+ *      因此在消费者侧 RpcStatus获取到的数据就是对应的消费者消费某个服务提供者 的 活跃数量、总次数、失败次数、总耗时等数据。
+ *
+ * ExecuteLimitFilter是消费者侧的过滤器
+ *      因此在提供者侧 RpcStatus获取到的数据就是对应的提供者总的活跃数量、所有消费者消费的次数、所有消费者消费失败的次数、所有消费者消费失败的总耗时。
+ *
+ * 以上数据都是精确到服务的某个方法的
+ *
  */
 public class RpcStatus {
 
+    /**
+     * key 提供者url.toIdentityString()
+     * value 是RpcStatus实例
+     * 缓存的就是 每个提供者对应的RpcStatus信息
+     */
     private static final ConcurrentMap<String, RpcStatus> SERVICE_STATISTICS = new ConcurrentHashMap<String, RpcStatus>();
 
+    /**
+     * key 提供者url.toIdentityString()
+     * value 也是一个ConcurrentMap
+     *        其中key是 提供者方法中的methodName, value是RpcStatus实例
+     * 缓存的就是 每个提供者中每个方法对应的RpcStatus信息
+     */
     private static final ConcurrentMap<String, ConcurrentMap<String, RpcStatus>> METHOD_STATISTICS = new ConcurrentHashMap<String, ConcurrentMap<String, RpcStatus>>();
     private final ConcurrentMap<String, Object> values = new ConcurrentHashMap<String, Object>();
+    /** 活跃数量
+     * 即当前消费者并行消费此服务的的数量
+     * com.alibaba.dubbo.rpc.filter.ActiveLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * com.alibaba.dubbo.rpc.filter.ExecuteLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * 此过滤器中赋值当有一个请求来时 +1
+     * 当请求完成后此值 -1
+     */
     private final AtomicInteger active = new AtomicInteger();
+
+    /**
+     * 此服务总的消费次数
+     * com.alibaba.dubbo.rpc.filter.ActiveLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * com.alibaba.dubbo.rpc.filter.ExecuteLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * 赋值
+     */
     private final AtomicLong total = new AtomicLong();
+
+    /**
+     * 消费此服务失败的次数
+     * com.alibaba.dubbo.rpc.filter.ActiveLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * com.alibaba.dubbo.rpc.filter.ExecuteLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * 赋值
+     */
     private final AtomicInteger failed = new AtomicInteger();
+
+    /**
+     * 所有消费此服务总耗时
+     */
     private final AtomicLong totalElapsed = new AtomicLong();
+
+    /**
+     * 所有消费此服务失败的总耗时
+     */
     private final AtomicLong failedElapsed = new AtomicLong();
+
+    /**
+     * 所有此服务的消费，耗时最久的时间
+     */
     private final AtomicLong maxElapsed = new AtomicLong();
+
+    /**
+     * 所有此服务消费失败的，耗时最久的时间
+     */
     private final AtomicLong failedMaxElapsed = new AtomicLong();
+
+    /**
+     * 所有此服务消费成功的，耗时最久的时间
+     */
     private final AtomicLong succeededMaxElapsed = new AtomicLong();
 
     /**
      * Semaphore used to control concurrency limit set by `executes`
      */
     private volatile Semaphore executesLimit;
+
+    /**
+     * executesLimit信号量里面的资源数量
+     */
     private volatile int executesPermits;
 
     private RpcStatus() {
@@ -111,6 +178,8 @@ public class RpcStatus {
 
     /**
      * @param url
+     * 提供者对应的活跃数+1
+     * 以及提供者+调用方法UI应的活跃数+1
      */
     public static void beginCount(URL url, String methodName) {
         beginCount(getStatus(url));
