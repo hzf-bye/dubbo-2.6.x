@@ -65,7 +65,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
     private static final long serialVersionUID = -5864351140409987595L;
 
     /**
-     * 动态生成的实例，可以看到protocol是URL中的protocol决定的，默认是dubbo
+     * 动态生成的实例，可以看到protocol是URL中的protocol决定的，
+     * 默认是dubbo
      * @see Protocol$Adaptive
      */
     private static final Protocol refprotocol = ExtensionLoader.getExtensionLoader(Protocol.class).getAdaptiveExtension();
