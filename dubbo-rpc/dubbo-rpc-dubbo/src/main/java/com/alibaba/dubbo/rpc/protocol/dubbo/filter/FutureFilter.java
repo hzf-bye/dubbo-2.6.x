@@ -125,6 +125,11 @@ public class FutureFilter implements Filter {
         }
     }
 
+    /**
+     * 方法执行返回后拦截
+     *
+     * 方法第一个参数为调用方法的返回值，其余为调用方法的参数；
+     */
     private void fireReturnCallback(final Invoker<?> invoker, final Invocation invocation, final Object result) {
         final Method onReturnMethod = (Method) StaticContext.getSystemContext().get(StaticContext.getKey(invoker.getUrl(), invocation.getMethodName(), Constants.ON_RETURN_METHOD_KEY));
         final Object onReturnInst = StaticContext.getSystemContext().get(StaticContext.getKey(invoker.getUrl(), invocation.getMethodName(), Constants.ON_RETURN_INSTANCE_KEY));
@@ -147,11 +152,15 @@ public class FutureFilter implements Filter {
         if (rParaTypes.length > 1) {
             if (rParaTypes.length == 2 && rParaTypes[1].isAssignableFrom(Object[].class)) {
                 params = new Object[2];
+                //第一个参数为调用方法的的返回值
                 params[0] = result;
+                //第二个参数为数组，则直接赋值调用方法的参数
                 params[1] = args;
             } else {
                 params = new Object[args.length + 1];
+                //第一个参数为调用方法的的返回值
                 params[0] = result;
+                //其余参数为调用方法的参数，数组拷贝。
                 System.arraycopy(args, 0, params, 1, args.length);
             }
         } else {
@@ -166,6 +175,10 @@ public class FutureFilter implements Filter {
         }
     }
 
+    /**
+     * 方法执行有异常拦截
+     * 方法第一个参数为调用异常，其余为调用方法的参数。
+     */
     private void fireThrowCallback(final Invoker<?> invoker, final Invocation invocation, final Throwable exception) {
         final Method onthrowMethod = (Method) StaticContext.getSystemContext().get(StaticContext.getKey(invoker.getUrl(), invocation.getMethodName(), Constants.ON_THROW_METHOD_KEY));
         final Object onthrowInst = StaticContext.getSystemContext().get(StaticContext.getKey(invoker.getUrl(), invocation.getMethodName(), Constants.ON_THROW_INSTANCE_KEY));

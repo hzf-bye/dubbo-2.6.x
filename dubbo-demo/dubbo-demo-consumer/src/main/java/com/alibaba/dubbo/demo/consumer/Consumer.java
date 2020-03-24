@@ -17,8 +17,12 @@
 package com.alibaba.dubbo.demo.consumer;
 
 import com.alibaba.dubbo.demo.DemoService;
-import com.alibaba.dubbo.samples.echo.api.EchoService;
+import com.alibaba.dubbo.remoting.exchange.ResponseFuture;
+import com.alibaba.dubbo.rpc.RpcContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class Consumer {
 
@@ -29,15 +33,18 @@ public class Consumer {
         System.setProperty("dubbo.registry.retry.period", "111111");
         ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[]{"META-INF/spring/dubbo-demo-consumer.xml"});
         context.start();
-//        DemoService demoService = (DemoService) context.getBean("demoService"); // get remote service proxy
-//        String hello = demoService.sayHello("world"); // call remote method
-//        System.out.println(System.in.read());
-
-        EchoService echoService = (EchoService) context.getBean("echoService");
-
-        String message = echoService.echo("hello world"); // call remote method
-        System.out.println(message);
+        DemoService demoService = (DemoService) context.getBean("demoService"); // get remote service proxy
+        String hello = demoService.sayHello("world"); // call remote method
+        System.out.println("say hello" + hello);
+        Future<String> future = RpcContext.getContext().getFuture();
+        String result = future.get(2, TimeUnit.SECONDS);
         System.out.println(System.in.read());
+
+//        EchoService echoService = (EchoService) context.getBean("echoService");
+//
+//        String message = echoService.echo("hello world"); // call remote method
+//        System.out.println(message);
+//        System.out.println(System.in.read());
 
 
     }

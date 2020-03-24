@@ -49,7 +49,7 @@ final class HeaderExchangeChannel implements ExchangeChannel {
 
     /**
      * 通道
-     * com.alibaba.dubbo.remoting.transport.netty4.NettyClient#NettyClient(com.alibaba.dubbo.common.URL, com.alibaba.dubbo.remoting.ChannelHandler)
+     * {@link com.alibaba.dubbo.remoting.transport.netty4.NettyClient#NettyClient(com.alibaba.dubbo.common.URL, com.alibaba.dubbo.remoting.ChannelHandler)}
      */
     private final Channel channel;
 
