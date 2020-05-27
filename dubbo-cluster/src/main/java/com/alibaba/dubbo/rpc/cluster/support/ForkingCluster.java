@@ -23,6 +23,7 @@ import com.alibaba.dubbo.rpc.cluster.Directory;
 
 /**
  * {@link ForkingClusterInvoker}
+ * 并行调用
  * 会在线程池中运行多个线程，同时调用多个相同的服务，只要其中一个返回，则立即返回结果，
  * 用户可以配置="做大并行数"参数来确定最大并行调用的服务数量。
  * 通常使用在对接口实时fork性要求极高的调用上，但也会浪费更多的资源。
