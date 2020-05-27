@@ -21,6 +21,9 @@ import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.cluster.Router;
+import com.alibaba.dubbo.rpc.cluster.support.AbstractClusterInvoker;
+import com.alibaba.dubbo.rpc.cluster.support.FailoverClusterInvoker;
+import com.alibaba.dubbo.rpc.cluster.support.wrapper.MockClusterInvoker;
 
 import java.util.List;
 
@@ -28,11 +31,23 @@ import java.util.List;
  * StaticDirectory
  * 静态 Directory 实现类，将传入的 invokers 集合，封装成静态的 Directory 对象。
  *
+ * 消费端使用多个注册中心时，把所有服务注册中心的invoker列表汇集到一个invoker列表中
+ * 那么
+ * 调用链路就是 AbstractClusterInvoker.invoke(此时AbstractClusterInvoker中的directory即为StaticDirectory)，返回此invokers列表
+ * 然后均衡选择其中一个MockClusterInvoker,后续调用步骤与但注册中心场景一致
+ * MockClusterInvoker(此时AbstractClusterInvoker中的directory即为RegistryDirectory)->FailoverClusterInvoker
+ *
  */
 public class StaticDirectory<T> extends AbstractDirectory<T> {
 
     /**
      *  Invoker 列表
+     * @see com.alibaba.dubbo.registry.integration.RegistryDirectory#toMergeMethodInvokerMap(java.util.Map)
+     * 中的invoker为 {@link com.alibaba.dubbo.registry.integration.RegistryDirectory.InvokerDelegate}实例
+     *
+     *
+     * @see com.alibaba.dubbo.config.ReferenceConfig#createProxy(java.util.Map)
+     * 当使用多注册中心时，此时invokers中的实例为 {@link MockClusterInvoker}实例
      */
     private final List<Invoker<T>> invokers;
 

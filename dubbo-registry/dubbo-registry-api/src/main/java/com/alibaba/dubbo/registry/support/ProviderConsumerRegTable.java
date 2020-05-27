@@ -35,11 +35,13 @@ public class ProviderConsumerRegTable {
 
     /**
      * 服务提供者Invoker集合，key 为服务提供者的url 计算的key，就是url.getServiceKey方法得到的
+     * @see ProviderConsumerRegTable#registerProvider(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.common.URL, com.alibaba.dubbo.common.URL)
      */
     public static ConcurrentHashMap<String, Set<ProviderInvokerWrapper>> providerInvokers = new ConcurrentHashMap<String, Set<ProviderInvokerWrapper>>();
 
     /**
      * 服务消费者的Invoker集合，key 为服务消费者的url 计算的key，url.getServiceKey方法得到的
+     * @see ProviderConsumerRegTable#registerConsumer(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.common.URL, com.alibaba.dubbo.common.URL, com.alibaba.dubbo.registry.integration.RegistryDirectory)
      */
     public static ConcurrentHashMap<String, Set<ConsumerInvokerWrapper>> consumerInvokers = new ConcurrentHashMap<String, Set<ConsumerInvokerWrapper>>();
 

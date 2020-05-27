@@ -26,6 +26,7 @@ import com.alibaba.dubbo.remoting.exchange.Request;
 import com.alibaba.dubbo.remoting.exchange.Response;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 import com.alibaba.dubbo.remoting.exchange.ResponseFuture;
+import com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchangeHandler;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -132,6 +133,11 @@ public class DefaultFuture implements ResponseFuture {
         return CHANNELS.containsValue(channel);
     }
 
+    /**
+     * @see com.alibaba.dubbo.remoting.transport.netty4.NettyClientHandler#write(io.netty.channel.ChannelHandlerContext, java.lang.Object, io.netty.channel.ChannelPromise)
+     * @see HeaderExchangeHandler#sent(com.alibaba.dubbo.remoting.Channel, java.lang.Object)
+     * 当客户端调动sent方法，标识客户端已发送成功
+     */
     public static void sent(Channel channel, Request request) {
         DefaultFuture future = FUTURES.get(request.getId());
         if (future != null) {
@@ -316,7 +322,7 @@ public class DefaultFuture implements ResponseFuture {
             } catch (Exception e) {
                 logger.error("callback invoke error ,url:" + channel.getUrl(), e);
             }
-        // 其他情况处理成RemotingException异常
+        // 其他情况处理成RuntimeException异常
         } else {
             try {
                 RuntimeException re = new RuntimeException(res.getErrorMessage());

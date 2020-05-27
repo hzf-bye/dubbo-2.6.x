@@ -38,7 +38,10 @@ import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.cluster.Cluster;
 import com.alibaba.dubbo.rpc.cluster.Configurator;
 import com.alibaba.dubbo.rpc.cluster.support.Cluster$Adpative;
+import com.alibaba.dubbo.rpc.cluster.support.FailoverClusterInvoker;
+import com.alibaba.dubbo.rpc.listener.ListenerExporterWrapper;
 import com.alibaba.dubbo.rpc.protocol.InvokerWrapper;
+import com.alibaba.dubbo.rpc.protocol.ProtocolListenerWrapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -73,6 +76,11 @@ public class RegistryProtocol implements Protocol {
     private final Map<URL, NotifyListener> overrideListeners = new ConcurrentHashMap<URL, NotifyListener>();
     //To solve the problem of RMI repeated exposure port conflicts, the services that have been exposed are no longer exposed.
     //providerurl <--> exporter
+    /**
+     * key:provider URL
+     *
+     * value:{@link ExporterChangeableWrapper}
+     */
     private final Map<String, ExporterChangeableWrapper<?>> bounds = new ConcurrentHashMap<String, ExporterChangeableWrapper<?>>();
 
     /**
@@ -103,6 +111,9 @@ public class RegistryProtocol implements Protocol {
      *         return extension.getRegistry(arg0);
      *     }
      * }
+     */
+    /**
+     * set方法注入
      */
     private RegistryFactory registryFactory;
     private ProxyFactory proxyFactory;
@@ -160,10 +171,14 @@ public class RegistryProtocol implements Protocol {
     }
 
     public void register(URL registryUrl, URL registedProviderUrl) {
+        //创建注册中心实例
         Registry registry = registryFactory.getRegistry(registryUrl);
         registry.register(registedProviderUrl);
     }
 
+    /**
+     * @param invoker DelegateProviderMetaDataInvoker实例
+     */
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
         //export invoker
@@ -234,6 +249,17 @@ public class RegistryProtocol implements Protocol {
          *      application.version%3D1.0%26dubbo%3D2.5.3%26environment%3Dproduct%26
          *      interface%3Ddubbo.common.hello.service.HelloService%26methods%3DsayHello%26
          *      organization%3Dchina%26owner%3Dcheng.xi%26pid%3D7876%26side%3Dprovider%26timestamp%3D1489057305001&
+         *      organization=china&owner=cheng.xi&pid=7876&registry=zookeeper&timestamp=1489057304900
+         */
+        /*
+         * decode后
+         * registry://127.0.0.1:2181/com.alibaba.dubbo.registry.RegistryService?
+         *     application=dubbo-provider&application.version=1.0&dubbo=2.5.3....
+         *     &export=dubbo://10.42.0.1:20880/
+         *      dubbo.common.hello.service.HelloService?anyhost=true&application=dubbo-provider&
+         *      application.version=1.0&dubbo=2.5.3&environment=product&
+         *      interface=dubbo.common.hello.service.HelloService&methods=sayHello&
+         *      organization=china&owner=cheng.xi&pid=7876&side=provider&timestamp=1489057305001&
          *      organization=china&owner=cheng.xi&pid=7876&registry=zookeeper&timestamp=1489057304900
          */
         /*
@@ -367,6 +393,14 @@ public class RegistryProtocol implements Protocol {
         return key;
     }
 
+    /**
+     *
+     * @param type Service class 消费组所消费所引用的提供者的class对象
+     * @param url  URL address for the remote service 消费者URL，此时URL协议还是registry
+     * @param <T>
+     * @return {@link FailoverClusterInvoker} 默认返回此实例
+     * @throws RpcException
+     */
     @Override
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
@@ -404,6 +438,7 @@ public class RegistryProtocol implements Protocol {
         }
         // 只有一个组或者没有组配置，则直接执行doRefer
         //选择配置的集群策略（cluster="failback"）或者默认策略
+        //返回 MockClusterInvoker实例，因为存在MockClusterWrapper自适应扩展类
         return doRefer(cluster, registry, type, url);
     }
 
@@ -457,7 +492,7 @@ public class RegistryProtocol implements Protocol {
         //合并所有相同的invoker
         /*
          * 这里由Cluster组件创建一个Invoker并返回，
-         * 这里的cluster默认是用FailoverCluster，最后返回的是经过FailoverClusterInvoker包装过的Invoker。
+         * 这里的cluster默认是MockClusterWrapper，最后返回的是经过MockClusterInvoker包装过的Invoker。
          * 继续返回到ReferenceConfig中createProxy方法，这时候我们已经完成了消费者端引用服务的Invoker
          *
          */
@@ -482,11 +517,14 @@ public class RegistryProtocol implements Protocol {
     }
 
     public static class InvokerDelegete<T> extends InvokerWrapper<T> {
+        /**
+         * @see com.alibaba.dubbo.config.invoker.DelegateProviderMetaDataInvoker 实例
+         */
         private final Invoker<T> invoker;
 
         /**
-         * @param invoker
-         * @param url     invoker.getUrl return this value
+         * @param invoker DelegateProviderMetaDataInvoker 实例
+         * @param url     提供者URL
          */
         public InvokerDelegete(Invoker<T> invoker, URL url) {
             super(invoker, url);
@@ -591,7 +629,15 @@ public class RegistryProtocol implements Protocol {
      */
     private class ExporterChangeableWrapper<T> implements Exporter<T> {
 
+        /**
+         * @see com.alibaba.dubbo.registry.integration.RegistryProtocol#doLocalExport(com.alibaba.dubbo.rpc.Invoker)
+         * DelegateProviderMetaDataInvoker实例
+         */
         private final Invoker<T> originInvoker;
+        /**
+         * @see ProtocolListenerWrapper#export(com.alibaba.dubbo.rpc.Invoker)
+         * ListenerExporterWrapper实例
+         */
         private Exporter<T> exporter;
 
         public ExporterChangeableWrapper(Exporter<T> exporter, Invoker<T> originInvoker) {
@@ -620,13 +666,29 @@ public class RegistryProtocol implements Protocol {
         }
     }
 
+    /**
+     * @see RegistryProtocol#export(com.alibaba.dubbo.rpc.Invoker)
+     * @param <T>
+     */
     static private class DestroyableExporter<T> implements Exporter<T> {
 
         public static final ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("Exporter-Unexport", true));
 
+        /**
+         * ExporterChangeableWrapper实例
+         */
         private Exporter<T> exporter;
+        /**
+         *  DelegateProviderMetaDataInvoker实例
+         */
         private Invoker<T> originInvoker;
+        /**
+         * 提供者订阅的configurators节点URL
+         */
         private URL subscribeUrl;
+        /**
+         * 提供者URL
+         */
         private URL registerUrl;
 
         public DestroyableExporter(Exporter<T> exporter, Invoker<T> originInvoker, URL subscribeUrl, URL registerUrl) {

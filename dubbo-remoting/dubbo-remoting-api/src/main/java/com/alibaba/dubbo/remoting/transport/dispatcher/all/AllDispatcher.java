@@ -17,11 +17,23 @@
 package com.alibaba.dubbo.remoting.transport.dispatcher.all;
 
 import com.alibaba.dubbo.common.URL;
+import com.alibaba.dubbo.common.threadlocal.NamedInternalThreadFactory;
+import com.alibaba.dubbo.common.threadpool.support.AbortPolicyWithReport;
 import com.alibaba.dubbo.remoting.ChannelHandler;
 import com.alibaba.dubbo.remoting.Dispatcher;
+import com.alibaba.dubbo.remoting.transport.dispatcher.ChannelHandlers;
+
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * default thread pool configure
+ * 所有消息都派发到线程池，包括请求，响应，连接事件，断开事件，心跳等。
+ * 线程模型的确认事件
+ * @see com.alibaba.dubbo.remoting.transport.netty4.NettyServer#NettyServer(com.alibaba.dubbo.common.URL, com.alibaba.dubbo.remoting.ChannelHandler)
+ * @see ChannelHandlers#wrap(com.alibaba.dubbo.remoting.ChannelHandler, com.alibaba.dubbo.common.URL)
  */
 public class AllDispatcher implements Dispatcher {
 

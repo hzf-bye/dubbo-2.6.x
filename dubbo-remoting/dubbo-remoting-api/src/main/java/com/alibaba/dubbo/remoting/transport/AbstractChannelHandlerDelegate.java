@@ -30,6 +30,7 @@ public abstract class AbstractChannelHandlerDelegate implements ChannelHandlerDe
     /**
      * 客户端HeaderExchangeHandler或AllChannelHandler或HeartbeatHandler实例
      * 服务端AllChannelHandler实例
+     * 具体看实现类
      */
     protected ChannelHandler handler;
 

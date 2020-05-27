@@ -32,6 +32,7 @@ import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.RpcInvocation;
 import com.alibaba.dubbo.rpc.RpcResult;
 import com.alibaba.dubbo.rpc.protocol.AbstractInvoker;
+import com.alibaba.dubbo.rpc.protocol.AbstractProtocol;
 import com.alibaba.dubbo.rpc.support.RpcUtils;
 
 import java.util.Set;
@@ -43,8 +44,9 @@ import java.util.concurrent.locks.ReentrantLock;
 public class DubboInvoker<T> extends AbstractInvoker<T> {
 
     /**
-     * 缓存的是客户端连接
-     * ReferenceCountExchangeClient实例
+     * 缓存的是客户端连接，默认只有一个client 即即消费端引用同一个服务提供者机器上多个服务时，这些服务复用一个netty连接。
+     * @see DubboProtocol#getClients(com.alibaba.dubbo.common.URL)
+     * @see ReferenceCountExchangeClient 实例
      */
     private final ExchangeClient[] clients;
 
@@ -59,8 +61,8 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
     private final ReentrantLock destroyLock = new ReentrantLock();
 
     /**
-     * 缓存对的是在创建此DubboInvoker时，DubboProtocol已经缓存的invokers
-     * com.alibaba.dubbo.rpc.protocol.AbstractProtocol#invokers
+     * 缓存对的是DubboInvoker集合
+     * @see com.alibaba.dubbo.rpc.protocol.AbstractProtocol#invokers
      */
     private final Set<Invoker<?>> invokers;
 
@@ -68,6 +70,13 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         this(serviceType, url, clients, null);
     }
 
+    /**
+     *
+     * @param serviceType  服务提供者的Class
+     * @param url 提供者URL
+     * @param clients {@link ReferenceCountExchangeClient}
+     * @param invokers {@link AbstractProtocol#invokers}
+     */
     public DubboInvoker(Class<T> serviceType, URL url, ExchangeClient[] clients, Set<Invoker<?>> invokers) {
         super(serviceType, url, new String[]{Constants.INTERFACE_KEY, Constants.GROUP_KEY, Constants.TOKEN_KEY, Constants.TIMEOUT_KEY});
         this.clients = clients;
@@ -90,8 +99,11 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
             currentClient = clients[index.getAndIncrement() % clients.length];
         }
         try {
+            //是否异步调用
             boolean isAsync = RpcUtils.isAsync(getUrl(), invocation);
+            //是否为Oneway，也就是不需要响应的请求
             boolean isOneway = RpcUtils.isOneway(getUrl(), invocation);
+            //超时等待时间
             int timeout = getUrl().getMethodParameter(methodName, Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
             if (isOneway) {
                 boolean isSent = getUrl().getMethodParameter(methodName, Constants.SENT_KEY, false);

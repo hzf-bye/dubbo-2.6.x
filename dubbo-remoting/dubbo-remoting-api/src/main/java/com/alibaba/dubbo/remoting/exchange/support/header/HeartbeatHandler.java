@@ -26,9 +26,12 @@ import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.exchange.Request;
 import com.alibaba.dubbo.remoting.exchange.Response;
 import com.alibaba.dubbo.remoting.transport.AbstractChannelHandlerDelegate;
+import com.alibaba.dubbo.remoting.transport.dispatcher.all.AllChannelHandler;
 
 /**
  * 该类继承了AbstractChannelHandlerDelegate类，是心跳处理器。是用来处理心跳事件的，也接收消息上增加了对心跳消息的处理。
+ * 创建
+ * @see com.alibaba.dubbo.remoting.transport.dispatcher.ChannelHandlers#wrapInternal(com.alibaba.dubbo.remoting.ChannelHandler, com.alibaba.dubbo.common.URL)
  *
  */
 public class HeartbeatHandler extends AbstractChannelHandlerDelegate {
@@ -40,10 +43,16 @@ public class HeartbeatHandler extends AbstractChannelHandlerDelegate {
     public static String KEY_WRITE_TIMESTAMP = "WRITE_TIMESTAMP";
 
     public HeartbeatHandler(ChannelHandler handler) {
-        //AllChannelHandler实例
+        /**
+         * 默认
+         * @see AllChannelHandler
+         */
         super(handler);
     }
 
+    /**
+     * 消费端发起tcp连接并完成后，服务端此方法被调用
+     */
     @Override
     public void connected(Channel channel) throws RemotingException {
         setReadTimestamp(channel);

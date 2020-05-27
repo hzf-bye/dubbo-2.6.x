@@ -36,6 +36,8 @@ import com.alibaba.dubbo.rpc.Protocol;
 import com.alibaba.dubbo.rpc.ProxyFactory;
 import com.alibaba.dubbo.rpc.StaticContext;
 import com.alibaba.dubbo.rpc.cluster.ConfiguratorFactory;
+import com.alibaba.dubbo.rpc.protocol.ProtocolListenerWrapper;
+import com.alibaba.dubbo.rpc.proxy.javassist.JavassistProxyFactory;
 import com.alibaba.dubbo.rpc.service.GenericService;
 import com.alibaba.dubbo.rpc.support.ProtocolUtils;
 
@@ -78,22 +80,51 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
     private static final Protocol protocol = ExtensionLoader.getExtensionLoader(Protocol.class).getAdaptiveExtension();
 
     /**
-     * 动态生成的实例
+     * 动态生成的实例，代码模板参考
      * @see Protocol$Adpative
+     * 最终会默认调用{@link JavassistProxyFactory}实例中的方法
      */
     private static final ProxyFactory proxyFactory = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
 
     private static final Map<String, Integer> RANDOM_PORT_MAP = new HashMap<String, Integer>();
 
     private static final ScheduledExecutorService delayExportExecutor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("DubboServiceDelayExporter", true));
+
+    /**
+     * 缓存的每个协议下的 提供者URL
+     * @see ServiceConfig#doExportUrlsFor1Protocol(com.alibaba.dubbo.config.ProtocolConfig, java.util.List)
+     */
     private final List<URL> urls = new ArrayList<URL>();
+    /**
+     *
+     */
     private final List<Exporter<?>> exporters = new ArrayList<Exporter<?>>();
     // interface type
+    /**
+     * <dubbo:service interface="xxxx"/>
+     * 例如标签中的 xxx
+     */
     private String interfaceName;
+    /**
+     * interfaceName对应的接口的 class类型
+     */
     private Class<?> interfaceClass;
     // reference to interface impl
+    /**
+     * 提供者实现类
+     * 1、注解方式
+     * @see com.alibaba.dubbo.config.spring.AnnotationBean#postProcessAfterInitialization(java.lang.Object, java.lang.String) 中赋值
+     * 2、配置文件方式
+     * @see com.alibaba.dubbo.config.spring.schema.DubboBeanDefinitionParser#parse(org.w3c.dom.Element, org.springframework.beans.factory.xml.ParserContext, java.lang.Class, boolean)
+     * 中赋值
+     */
     private T ref;
     // service name
+    /**
+     * bean的全路径名称
+     * com.xxx.beanName
+     * @see ServiceConfig#setPath(java.lang.String)
+     */
     private String path;
     // method configuration
     private List<MethodConfig> methods;
@@ -102,6 +133,14 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
 
     private transient volatile boolean unexported;
 
+    /**
+     * 泛化调用方式
+     * @see Constants#GENERIC_SERIALIZATION_NATIVE_JAVA
+     * @see Constants#GENERIC_SERIALIZATION_DEFAULT
+     * @see Constants#GENERIC_SERIALIZATION_BEAN
+     * 为以上三种之一
+     *
+     */
     private volatile String generic;
 
     public ServiceConfig() {
@@ -288,6 +327,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (ref instanceof GenericService) {
             // 设置interfaceClass为GenericService
             interfaceClass = GenericService.class;
+            //未设置泛化调用方式则设置默认 true 方式
             if (StringUtils.isEmpty(generic)) {
                 // 设置generic = true
                 generic = Boolean.TRUE.toString();
@@ -565,7 +605,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         // 加载 ConfiguratorFactory，并生成 Configurator 实例，判断是否有该协议的实现存在
         if (ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
                 .hasExtension(url.getProtocol())) {
-            // 通过实例配置 url
+            // 通过实例配置 url，默认是没有DubboConfiguratorFactory的，可用户自定义
             url = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
                     .getExtension(url.getProtocol()).getConfigurator(url).configure(url);
         }
@@ -632,16 +672,17 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                          * wapper类只是方便我们自己做些额外的处理，最终向注册中心注册的过程在RegistryProtocol中。
                          */
                         /**
-                         * 就需要调用protocol 的 export()方法，
-                         * 很多人会认为这里的export()就是配置中指定的协议实现中的方法，但这里是不对的。
-                         * 因为暴露到远程后需要进行服务注册，而RegistryProtocol的 export()方法就是实现了服务暴露和服务注册两个过程。
-                         * 所以这里的export()调用的是RegistryProtocol的 export()。
+                         * @see ProtocolListenerWrapper#export(com.alibaba.dubbo.rpc.Invoker)
+                         * 因为上面方法中的Invoker参数中的URL为注册中心URL，因此protocol值为registry
+                         * @see AbstractInterfaceConfig#loadRegistries(boolean)
+                         * 因此ProtocolListenerWrapper#export调用的是RegistryProtocol的 export()。
+                         *
                          */
                         Exporter<?> exporter = protocol.export(wrapperInvoker);
                         exporters.add(exporter);
                     }
                 } else {
-                    // 不存在注册中心，则仅仅暴露服务，
+                    // 不存在注册中心，则仅仅暴露服务，直连方式。
                     Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, url);
                     DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 

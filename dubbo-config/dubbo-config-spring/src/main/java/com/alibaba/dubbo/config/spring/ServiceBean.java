@@ -53,10 +53,10 @@ import static com.alibaba.dubbo.config.spring.util.BeanFactoryUtils.addApplicati
  * 因为spring在初始化过程中时先对实现类了InitializingBean的类的bean的afterPropertiesSet进行回调，再发布ContextRefreshEvent事件
  * 因此
  *
- * 1. 设置了延迟暴露，dubbo在Spring实例化bean（initializeBean）的时候会对实现了InitializingBean的类进行回调，
+ * 1. 未设置了延迟暴露或者延迟为-1，dubbo在Spring实例化bean（initializeBean）的时候会对实现了InitializingBean的类进行回调，
  *    回调方法是afterPropertySet()，dubbo在这个方法中进行服务的发布。
  *
- * 2. 未设置了延迟暴露或者延迟为-1，dubbo会在Spring实例化完bean之后，在刷新容器最后一步发布ContextRefreshEvent事件的时候，
+ * 2. 设置了延迟暴露，dubbo会在Spring实例化完bean之后，在刷新容器最后一步发布ContextRefreshEvent事件的时候，
  * 通知实现了ApplicationListener的类进行回调onApplicationEvent，dubbo会在这个方法中发布服务。
  *
  *
@@ -74,6 +74,9 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
 
     private transient ApplicationContext applicationContext;
 
+    /**
+     * @see com.alibaba.dubbo.config.spring.schema.DubboBeanDefinitionParser#parse(org.w3c.dom.Element, org.springframework.beans.factory.xml.ParserContext, java.lang.Class, boolean)
+     */
     private transient String beanName;
 
     private transient boolean supportedApplicationListener;

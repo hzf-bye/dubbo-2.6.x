@@ -39,6 +39,9 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class ConsistentHashLoadBalance extends AbstractLoadBalance {
 
+    /**
+     * key:服务类名.方法名 com.xxx.UserService.query
+     */
     private final ConcurrentMap<String, ConsistentHashSelector<?>> selectors = new ConcurrentHashMap<String, ConsistentHashSelector<?>>();
 
     @SuppressWarnings("unchecked")

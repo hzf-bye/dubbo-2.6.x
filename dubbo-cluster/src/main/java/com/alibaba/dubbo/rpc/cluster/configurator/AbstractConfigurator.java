@@ -64,6 +64,7 @@ public abstract class AbstractConfigurator implements Configurator {
         // 如果覆盖url具有端口，则表示它是提供者地址。我们希望使用此覆盖URL控制特定提供程序，它可以在提供端生效 也可以在消费端生效。
         if (configuratorUrl.getPort() != 0) {
             if (url.getPort() == configuratorUrl.getPort()) {
+                //则动态配置规则配置的host与当前URL的host相等才执行配置规则
                 return configureIfMatch(url.getHost(), url);
             }
         } else {// override url don't have a port, means the ip override url specify is a consumer address or 0.0.0.0
@@ -74,7 +75,7 @@ public abstract class AbstractConfigurator implements Configurator {
                 // 如果它是一个消费者ip地址，目的是控制一个特定的消费者实例，它必须在消费者一方生效，任何提供者收到这个覆盖url应该忽略;
                 return configureIfMatch(NetUtils.getLocalHost(), url);// NetUtils.getLocalHost is the ip address consumer registered to registry.
             } else if (url.getParameter(Constants.SIDE_KEY, Constants.CONSUMER).equals(Constants.PROVIDER)) {
-                // 如果ip为0.0.0.0，则此覆盖url可以在使用者上使用，也可以在提供者上使用
+                // 如果ip为0.0.0.0，则此覆盖url可以在消费者上使用，也可以在提供者上使用
                 return configureIfMatch(Constants.ANYHOST_VALUE, url);// take effect on all providers, so address must be 0.0.0.0, otherwise it won't flow to this if branch
             }
         }
@@ -110,7 +111,7 @@ public abstract class AbstractConfigurator implements Configurator {
                      * 否则那么说明application相等，说明我就是要变更你的参数信息，那么继续向下走覆盖。
                      */
                     if (key.startsWith("~") || Constants.APPLICATION_KEY.equals(key) || Constants.SIDE_KEY.equals(key)) {
-                        // 添加搭配条件集合
+                        // 添加搭配条件集合，有一个值不匹配则不覆盖
                         conditionKeys.add(key);
                         if (value != null && !Constants.ANY_VALUE.equals(value)
                                 && !value.equals(url.getParameter(key.startsWith("~") ? key.substring(1) : key))) {

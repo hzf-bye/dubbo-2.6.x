@@ -28,6 +28,9 @@ import com.alibaba.dubbo.remoting.Channel;
 import com.alibaba.dubbo.remoting.ChannelHandler;
 import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.Server;
+import com.alibaba.dubbo.remoting.transport.dispatcher.ChannelHandlers;
+import com.alibaba.dubbo.remoting.transport.dispatcher.WrappedChannelHandler;
+import com.alibaba.dubbo.remoting.transport.dispatcher.all.AllChannelHandler;
 
 import java.net.InetSocketAddress;
 import java.util.Collection;
@@ -55,11 +58,12 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
      */
     private InetSocketAddress localAddress;
     /**
-     * 绑定地址
+     * 绑定地址，提供者 ip+port
      */
     private InetSocketAddress bindAddress;
     /**
-     * 最大可接受的连接数
+     * 最大可接受的连接数，默认值为0，即不限制连接数
+     * @see AbstractServer#connected(com.alibaba.dubbo.remoting.Channel)
      */
     private int accepts;
     /**
@@ -67,6 +71,12 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
      */
     private int idleTimeout = 600; //600 seconds
 
+    /**
+     *
+     * @param url
+     * @param handler {@link MultiMessageHandler}
+     * @throws RemotingException
+     */
     public AbstractServer(URL url, ChannelHandler handler) throws RemotingException {
         //handler为MultiMessageHandler
         //NettyServer构造，会依次经过AbstractPeer，AbstractEndpoint，AbstractServer，NettyServer的初始化
@@ -100,7 +110,13 @@ public abstract class AbstractServer extends AbstractEndpoint implements Server 
                     + " on " + getLocalAddress() + ", cause: " + t.getMessage(), t);
         }
         //fixme replace this with better method
-        // 获得线程池
+        /**
+         * 获得线程池
+         * @see ChannelHandlers#wrapInternal(com.alibaba.dubbo.remoting.ChannelHandler, com.alibaba.dubbo.common.URL)
+         * @see AllChannelHandler#AllChannelHandler(com.alibaba.dubbo.remoting.ChannelHandler, com.alibaba.dubbo.common.URL)
+         * @see WrappedChannelHandler#WrappedChannelHandler(com.alibaba.dubbo.remoting.ChannelHandler, com.alibaba.dubbo.common.URL)
+         * 中初始化dataStore
+         */
         DataStore dataStore = ExtensionLoader.getExtensionLoader(DataStore.class).getDefaultExtension();
         executor = (ExecutorService) dataStore.get(Constants.EXECUTOR_SERVICE_COMPONENT_KEY, Integer.toString(url.getPort()));
     }

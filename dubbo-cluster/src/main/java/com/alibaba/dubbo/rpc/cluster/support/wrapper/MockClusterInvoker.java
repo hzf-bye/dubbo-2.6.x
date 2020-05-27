@@ -28,6 +28,7 @@ import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.RpcInvocation;
 import com.alibaba.dubbo.rpc.RpcResult;
 import com.alibaba.dubbo.rpc.cluster.Directory;
+import com.alibaba.dubbo.rpc.cluster.support.FailoverClusterInvoker;
 import com.alibaba.dubbo.rpc.support.MockInvoker;
 
 import java.util.List;
@@ -43,11 +44,12 @@ public class MockClusterInvoker<T> implements Invoker<T> {
 
     /**
      * 目录
+     * @see com.alibaba.dubbo.registry.integration.RegistryDirectory
      */
     private final Directory<T> directory;
 
     /**
-     * 默认FailoverClusterInvoker实例
+     * 默认{@link FailoverClusterInvoker}实例
      */
     private final Invoker<T> invoker;
 
@@ -82,12 +84,12 @@ public class MockClusterInvoker<T> implements Invoker<T> {
 
         // 获得 "mock" 配置项，有多种配置方式
         String value = directory.getUrl().getMethodParameter(invocation.getMethodName(), Constants.MOCK_KEY, Boolean.FALSE.toString()).trim();
+        //// 如果没有mock，或者值为false，说明没有设置降级策略，直接调用
         if (value.length() == 0 || value.equalsIgnoreCase("false")) {
             //no mock
-            // 如果没有mock，直接调用
             result = this.invoker.invoke(invocation);
         } else if (value.startsWith("force")) {
-            // 如果强制服务降级
+            // 设置了force:return降级策略
             if (logger.isWarnEnabled()) {
                 logger.info("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + directory.getUrl());
             }
@@ -96,7 +98,7 @@ public class MockClusterInvoker<T> implements Invoker<T> {
             result = doMockInvoke(invocation, null);
         } else {
             //fail-mock
-            // 失败服务降级
+            // 失败服务降级 fail-mock，先发起远程调用，调用成功则返回结果，失败则执行降级策略
             try {
                 //正常调用
                 result = this.invoker.invoke(invocation);

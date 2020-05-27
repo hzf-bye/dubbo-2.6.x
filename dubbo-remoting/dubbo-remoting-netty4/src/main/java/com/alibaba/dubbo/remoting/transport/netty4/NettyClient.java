@@ -26,6 +26,7 @@ import com.alibaba.dubbo.remoting.ChannelHandler;
 import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.transport.AbstractClient;
 
+import com.alibaba.dubbo.remoting.transport.DecodeHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -61,8 +62,12 @@ public class NettyClient extends AbstractClient {
      */
     private volatile Channel channel; // volatile, please copy reference to use
 
+    /**
+     *
+     * @param url 消费者消费的提供者URL
+     * @param handler {@link DecodeHandler}
+     */
     public NettyClient(final URL url, final ChannelHandler handler) throws RemotingException {
-        //handler为DecodeHandler
         super(url, wrapChannelHandler(url, handler));
     }
 

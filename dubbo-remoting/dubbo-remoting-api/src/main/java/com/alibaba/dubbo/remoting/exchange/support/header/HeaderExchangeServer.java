@@ -59,6 +59,7 @@ public class HeaderExchangeServer implements ExchangeServer {
 
     /**
      * 服务器
+     * @see com.alibaba.dubbo.remoting.transport.netty4.NettyServer#NettyServer(com.alibaba.dubbo.common.URL, com.alibaba.dubbo.remoting.ChannelHandler)
      */
     private final Server server;
 
@@ -85,14 +86,18 @@ public class HeaderExchangeServer implements ExchangeServer {
     private AtomicBoolean closed = new AtomicBoolean(false);
 
     /**
-     * 构造函数就是对属性的设置，心跳的机制以及默认值都跟HeaderExchangeClient中的一模一样。
+     * 构造函数就是对属性的设置，心跳的机制以及默认值都跟{@link HeaderExchangeClient}中的一模一样。
      */
     public HeaderExchangeServer(Server server) {
         if (server == null) {
             throw new IllegalArgumentException("server == null");
         }
         this.server = server;
-        //获得心跳周期配置，如果没有配置，默认设置为0
+        //获得心跳周期配置，如果没有配置，默认设置为0，即不开启心跳检测
+        /**
+         * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#createServer(com.alibaba.dubbo.common.URL)
+         * 中默认开启心跳检测
+         */
         this.heartbeat = server.getUrl().getParameter(Constants.HEARTBEAT_KEY, 0);
         // 获得心跳超时配置，默认是心跳周期的三倍
         this.heartbeatTimeout = server.getUrl().getParameter(Constants.HEARTBEAT_TIMEOUT_KEY, heartbeat * 3);

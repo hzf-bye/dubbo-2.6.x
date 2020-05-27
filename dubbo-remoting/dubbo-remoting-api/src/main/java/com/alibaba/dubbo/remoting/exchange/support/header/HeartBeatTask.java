@@ -23,6 +23,8 @@ import com.alibaba.dubbo.common.logger.LoggerFactory;
 import com.alibaba.dubbo.remoting.Channel;
 import com.alibaba.dubbo.remoting.Client;
 import com.alibaba.dubbo.remoting.exchange.Request;
+import com.alibaba.dubbo.remoting.transport.dispatcher.ChannelEventRunnable;
+import com.alibaba.dubbo.remoting.transport.dispatcher.all.AllChannelHandler;
 
 import java.util.Collection;
 
@@ -77,10 +79,25 @@ final class HeartBeatTask implements Runnable {
                     continue;
                 }
                 try {
-                    // 最后一次接收到消息的时间戳
+                    /**
+                     * 最后一次接收到消息的时间戳
+                     * @see HeartbeatHandler#received(com.alibaba.dubbo.remoting.Channel, java.lang.Object)
+                     * @see HeartbeatHandler#connected(Channel)
+                     * @see HeartbeatHandler#disconnected(Channel)
+                     * 在接收到消息的时候会设置
+                     */
                     Long lastRead = (Long) channel.getAttribute(
                             HeaderExchangeHandler.KEY_READ_TIMESTAMP);
-                    // 最后一次发送消息的时间戳
+                    /**
+                     * 最后一次发送消息的时间戳
+                     * @see HeartbeatHandler#sent(com.alibaba.dubbo.remoting.Channel, java.lang.Object)
+                     * @see com.alibaba.dubbo.remoting.transport.netty4.NettyServerHandler#write(io.netty.channel.ChannelHandlerContext, java.lang.Object, io.netty.channel.ChannelPromise)
+                     * @see com.alibaba.dubbo.remoting.transport.netty4.NettyClientHandler#write(io.netty.channel.ChannelHandlerContext, java.lang.Object, io.netty.channel.ChannelPromise)
+                     * 当客户端或者服务端写入消息后都会调动sent方法
+                     *
+                     * @see HeartbeatHandler#connected(Channel)
+                     * @see HeartbeatHandler#disconnected(Channel)
+                     */
                     Long lastWrite = (Long) channel.getAttribute(
                             HeaderExchangeHandler.KEY_WRITE_TIMESTAMP);
                     // 如果最后一次接收或者发送消息到时间到现在的时间间隔超过了心跳间隔时间

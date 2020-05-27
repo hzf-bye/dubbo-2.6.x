@@ -16,24 +16,43 @@
  */
 package com.alibaba.dubbo.rpc.proxy;
 
+import com.alibaba.dubbo.common.Constants;
 import com.alibaba.dubbo.common.URL;
 import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.RpcResult;
+import com.alibaba.dubbo.rpc.proxy.javassist.JavassistProxyFactory;
 
 import java.lang.reflect.InvocationTargetException;
 
 /**
  * InvokerWrapper
+ * 封装提供者的类，通过生成代理wrapper类，减少反射调用的开销
  */
 public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
 
+    /**
+     * 提供者实例
+     */
     private final T proxy;
 
+    /**
+     * 提供者 接口 Class类型
+     */
     private final Class<T> type;
 
+    /**
+     * 1. 如果配置了注册中心那么URL注册中心URL实例
+     * 其params的 key export 存储量提供者URL的所有信息
+     * @see Constants#EXPORT_KEY
+     * 2. 如果没有配置注册中心，那么说明为消费者直连方式
+     * url为提供者URL实例
+     *
+     * 详见
+     * @see com.alibaba.dubbo.config.ServiceConfig#doExportUrlsFor1Protocol(com.alibaba.dubbo.config.ProtocolConfig, java.util.List)
+     */
     private final URL url;
 
     public AbstractProxyInvoker(T proxy, Class<T> type, URL url) {
@@ -81,6 +100,15 @@ public abstract class AbstractProxyInvoker<T> implements Invoker<T> {
         }
     }
 
+    /**
+     * 当调用提供者的某个方法时都会通过此方法
+     * @see JavassistProxyFactory#getInvoker(java.lang.Object, java.lang.Class, com.alibaba.dubbo.common.URL)
+     * 通过初始化时生成的Wrapper类，直接调动目标方法，减少反射调动的开销。
+     * @param proxy 提供者实例
+     * @param methodName 方法名
+     * @param parameterTypes 参数类型
+     * @param arguments 参数列表
+     */
     protected abstract Object doInvoke(T proxy, String methodName, Class<?>[] parameterTypes, Object[] arguments) throws Throwable;
 
     @Override

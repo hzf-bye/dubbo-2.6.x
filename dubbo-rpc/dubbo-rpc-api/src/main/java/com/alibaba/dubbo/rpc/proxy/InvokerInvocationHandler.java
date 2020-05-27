@@ -27,6 +27,10 @@ import java.lang.reflect.Method;
  */
 public class InvokerInvocationHandler implements InvocationHandler {
 
+    /**
+     * 具体值见
+     * @see com.alibaba.dubbo.config.ReferenceConfig#invoker
+     */
     private final Invoker<?> invoker;
 
     public InvokerInvocationHandler(Invoker<?> handler) {

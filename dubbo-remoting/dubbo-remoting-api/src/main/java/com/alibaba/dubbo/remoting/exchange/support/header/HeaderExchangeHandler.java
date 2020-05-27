@@ -52,10 +52,9 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
     public static String KEY_WRITE_TIMESTAMP = HeartbeatHandler.KEY_WRITE_TIMESTAMP;
 
     /**
-     * 这里的handler是com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#requestHandler
-     * com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#initClient(com.alibaba.dubbo.common.URL)传入requestHandler
-     *
-     * 因为在com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#createServer(com.alibaba.dubbo.common.URL)
+     * 这里的handler是{@link com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#requestHandler}
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#initClient(com.alibaba.dubbo.common.URL)
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#createServer(com.alibaba.dubbo.common.URL)
      * 中就用requestHandler来创建HeaderExchangeHandler实例
      */
     private final ExchangeHandler handler;
@@ -178,12 +177,21 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         }
     }
 
+    /**
+     * 消费端发起tcp连接并完成后，服务端此方法被调用
+     * @see com.alibaba.dubbo.remoting.transport.dispatcher.all.AllChannelHandler#received(com.alibaba.dubbo.remoting.Channel, java.lang.Object)
+     * received时间被放入线程池中异步调动此方法，
+     * @param channel channel.
+     * @param message message.
+     * @throws RemotingException
+     */
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
         //更新时间时间戳
         channel.setAttribute(KEY_READ_TIMESTAMP, System.currentTimeMillis());
         ExchangeChannel exchangeChannel = HeaderExchangeChannel.getOrAddChannel(channel);
         try {
+            //请求
             if (message instanceof Request) {
                 // handle request.
                 Request request = (Request) message;
@@ -191,11 +199,13 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                     //处理readonly事件，在channel中打标
                     handlerEvent(channel, request);
                 } else {
+                    //需要相应的
                     if (request.isTwoWay()) {
                         //处理返回调用并返回给客户端
                         Response response = handleRequest(exchangeChannel, request);
                         channel.send(response);
                     } else {
+                        //不需要响应的
                         handler.received(exchangeChannel, request.getData());
                     }
                 }

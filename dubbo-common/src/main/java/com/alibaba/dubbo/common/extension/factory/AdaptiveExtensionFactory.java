@@ -43,6 +43,7 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
          */
         ExtensionLoader<ExtensionFactory> loader = ExtensionLoader.getExtensionLoader(ExtensionFactory.class);
         List<ExtensionFactory> list = new ArrayList<ExtensionFactory>();
+        //获取所有普通扩展类，且会排序，SPI在前面，Spring在后面
         for (String name : loader.getSupportedExtensions()) {
             list.add(loader.getExtension(name));
         }

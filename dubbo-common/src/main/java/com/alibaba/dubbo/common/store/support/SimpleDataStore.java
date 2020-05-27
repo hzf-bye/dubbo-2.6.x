@@ -27,6 +27,10 @@ import java.util.concurrent.ConcurrentMap;
 public class SimpleDataStore implements DataStore {
 
     // <component name or id, <data-name, data-value>>
+    /**
+     * 初始化
+     * @see com.alibaba.dubbo.remoting.transport.dispatcher.WrappedChannelHandler#WrappedChannelHandler(com.alibaba.dubbo.remoting.ChannelHandler, com.alibaba.dubbo.common.URL)
+     */
     private ConcurrentMap<String, ConcurrentMap<String, Object>> data =
             new ConcurrentHashMap<String, ConcurrentMap<String, Object>>();
 

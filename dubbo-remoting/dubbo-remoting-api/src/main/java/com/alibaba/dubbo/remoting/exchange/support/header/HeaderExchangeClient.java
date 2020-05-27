@@ -62,7 +62,8 @@ public class HeaderExchangeClient implements ExchangeClient {
 
     /**
      * 信息交换通道
-     * HeaderExchangeChannel实例，构造方法初始化
+     * @see HeaderExchangeChannel#HeaderExchangeChannel(com.alibaba.dubbo.remoting.Channel)
+     * 构造方法初始化
      */
     private final ExchangeChannel channel;
 
@@ -75,6 +76,7 @@ public class HeaderExchangeClient implements ExchangeClient {
     // heartbeat(ms), default value is 0 , won't execute a heartbeat.
     /**
      * 心跳周期，间隔多久发送心跳消息检测一次
+     * 为0 则不开启心跳检测
      */
     private int heartbeat;
 
@@ -83,6 +85,11 @@ public class HeaderExchangeClient implements ExchangeClient {
      */
     private int heartbeatTimeout;
 
+    /**
+     *
+     * @param client {@link com.alibaba.dubbo.remoting.transport.netty4.NettyClient}
+     * @param needHeartbeat 是否需要心跳检测，默认true
+     */
     public HeaderExchangeClient(Client client, boolean needHeartbeat) {
         if (client == null) {
             throw new IllegalArgumentException("client == null");
@@ -92,7 +99,11 @@ public class HeaderExchangeClient implements ExchangeClient {
         this.channel = new HeaderExchangeChannel(client);
         // 获得dubbo版本
         String dubbo = client.getUrl().getParameter(Constants.DUBBO_VERSION_KEY);
-        //获得心跳周期配置，如果没有配置，并且dubbo是1.0版本的，则这只为1分钟，否则设置为0
+        //获得心跳周期配置，如果没有配置，并且dubbo是1.0版本的，则设置为1分钟，否则设置为0
+        /**
+         * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#initClient(com.alibaba.dubbo.common.URL)
+         * 中默认开启心跳检测
+         */
         this.heartbeat = client.getUrl().getParameter(Constants.HEARTBEAT_KEY, dubbo != null && dubbo.startsWith("1.0.") ? Constants.DEFAULT_HEARTBEAT : 0);
         // 获得心跳超时配置，默认是心跳周期的三倍
         this.heartbeatTimeout = client.getUrl().getParameter(Constants.HEARTBEAT_TIMEOUT_KEY, heartbeat * 3);

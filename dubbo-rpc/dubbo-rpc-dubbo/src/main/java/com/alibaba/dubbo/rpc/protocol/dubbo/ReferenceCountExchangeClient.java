@@ -24,6 +24,7 @@ import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.exchange.ExchangeClient;
 import com.alibaba.dubbo.remoting.exchange.ExchangeHandler;
 import com.alibaba.dubbo.remoting.exchange.ResponseFuture;
+import com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchangeClient;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentMap;
@@ -36,13 +37,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class ReferenceCountExchangeClient implements ExchangeClient {
 
     private final URL url;
+    /**
+     * 引用计数
+     */
     private final AtomicInteger refenceCount = new AtomicInteger(0);
 
     //    private final ExchangeHandler handler;
     private final ConcurrentMap<String, LazyConnectExchangeClient> ghostClientMap;
 
     /**
-     * HeaderExchangeClient实例
+     * {@link HeaderExchangeClient}
+     * @see DubboProtocol#initClient(com.alibaba.dubbo.common.URL)
+     * 如果配置了lazy属性为true则client为
+     * @see LazyConnectExchangeClient#LazyConnectExchangeClient(com.alibaba.dubbo.common.URL, com.alibaba.dubbo.remoting.exchange.ExchangeHandler)
+     * 消费者启动时未与服务端建立连接
+     * 默认lazy属性为false则client为
+     * {@link HeaderExchangeClient}
+     * 消费者启动时就与服务端建立连接
+     *
      */
     private ExchangeClient client;
 

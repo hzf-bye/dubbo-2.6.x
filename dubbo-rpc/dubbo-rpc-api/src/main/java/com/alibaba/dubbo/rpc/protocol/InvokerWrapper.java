@@ -28,7 +28,7 @@ import com.alibaba.dubbo.rpc.RpcException;
 public class InvokerWrapper<T> implements Invoker<T> {
 
     /**
-     * DubboInvoker实例
+     * 具体啥实例看调用方
      */
     private final Invoker<T> invoker;
 

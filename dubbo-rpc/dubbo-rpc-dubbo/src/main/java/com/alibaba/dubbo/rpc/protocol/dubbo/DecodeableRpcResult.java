@@ -53,7 +53,7 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
 
     private volatile boolean hasDecoded;
 
-    public DecodeableRpcResult(Channel channel, Response response, InputStream is, Invocation invocation, byte id) {
+    public /**/DecodeableRpcResult(Channel channel, Response response, InputStream is, Invocation invocation, byte id) {
         Assert.notNull(channel, "channel == null");
         Assert.notNull(response, "response == null");
         Assert.notNull(is, "inputStream == null");
@@ -71,7 +71,7 @@ public class DecodeableRpcResult extends RpcResult implements Codec, Decodeable 
 
     /**
      * 解码响应
-     * 与com.alibaba.dubbo.rpc.protocol.dubbo.DubboCodec#encodeResponseData(com.alibaba.dubbo.remoting.Channel, com.alibaba.dubbo.common.serialize.ObjectOutput, java.lang.Object, java.lang.String)
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboCodec#encodeResponseData(com.alibaba.dubbo.remoting.Channel, com.alibaba.dubbo.common.serialize.ObjectOutput, java.lang.Object, java.lang.String)
      * 编码对应
      */
     @Override

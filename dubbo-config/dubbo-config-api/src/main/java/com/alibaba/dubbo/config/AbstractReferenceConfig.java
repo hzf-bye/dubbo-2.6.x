@@ -59,6 +59,9 @@ public abstract class AbstractReferenceConfig extends AbstractInterfaceConfig {
     protected Boolean stubevent;//= Constants.DEFAULT_STUB_EVENT;
 
     // version
+    /**
+     * dubbo 消费版本号
+     */
     protected String version;
 
     // group

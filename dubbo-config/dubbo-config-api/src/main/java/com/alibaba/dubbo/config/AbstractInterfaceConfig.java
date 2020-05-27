@@ -162,6 +162,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     protected List<URL> loadRegistries(boolean provider) {
+        //加载注册中心
         checkRegistry();
         List<URL> registryList = new ArrayList<URL>();
         // 如果registries为空，直接返回空集合
@@ -174,7 +175,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                 if (address == null || address.length() == 0) {
                     address = Constants.ANYHOST_VALUE;
                 }
-                //如果配置文件中配置了dubbo.registry.address配置，那么使用此配置
+                //如果系统属性中配置了dubbo.registry.address配置，那么使用此配置
                 String sysaddress = System.getProperty("dubbo.registry.address");
                 if (sysaddress != null && sysaddress.length() > 0) {
                     address = sysaddress;
@@ -310,11 +311,21 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     void checkMock(Class<?> interfaceClass) {
+        //未设置mock直接返回
         if (ConfigUtils.isEmpty(mock)) {
             return;
         }
 
+        /**
+         * 获取格式化mock方式
+         * 1. "return" => "return null"
+         * 2. "fail" => "default"
+         * 3. "force" => "default"
+         * 4. "fail:throw/return foo" => throw/return foo
+         * 5. "force:throw/return foo" => throw/return foo
+         */
         String normalizedMock = MockInvoker.normalizeMock(mock);
+        //检查mock是否合法，不合法则抛出异常
         if (normalizedMock.startsWith(Constants.RETURN_PREFIX)) {
             normalizedMock = normalizedMock.substring(Constants.RETURN_PREFIX.length()).trim();
             try {

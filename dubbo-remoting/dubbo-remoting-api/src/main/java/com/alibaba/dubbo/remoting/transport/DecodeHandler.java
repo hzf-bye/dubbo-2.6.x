@@ -25,13 +25,18 @@ import com.alibaba.dubbo.remoting.Decodeable;
 import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.exchange.Request;
 import com.alibaba.dubbo.remoting.exchange.Response;
+import com.alibaba.dubbo.remoting.exchange.codec.ExchangeCodec;
+import com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchangeHandler;
+import com.alibaba.dubbo.remoting.exchange.support.header.HeartbeatHandler;
 
 public class DecodeHandler extends AbstractChannelHandlerDelegate {
 
     private static final Logger log = LoggerFactory.getLogger(DecodeHandler.class);
 
     public DecodeHandler(ChannelHandler handler) {
-        //HeaderExchangeHandler实例
+        /**
+         * @see HeaderExchangeHandler#HeaderExchangeHandler(com.alibaba.dubbo.remoting.exchange.ExchangeHandler)实例
+         */
         super(handler);
     }
 
@@ -39,6 +44,9 @@ public class DecodeHandler extends AbstractChannelHandlerDelegate {
      * 可以看到做了三次判断，根据消息的不同会对消息的不同数据做解码。
      * 可以看到，这里用到装饰模式后，在处理消息的前面做了解码的处理，
      * 并且还能继续委托给handler来处理消息，通过组合做到了功能的叠加。
+     * 到这里的message是已经经过
+     * @see ExchangeCodec#decode(com.alibaba.dubbo.remoting.Channel, com.alibaba.dubbo.remoting.buffer.ChannelBuffer)
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboCodec#decodeBody(com.alibaba.dubbo.remoting.Channel, java.io.InputStream, byte[])
      */
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
@@ -61,6 +69,13 @@ public class DecodeHandler extends AbstractChannelHandlerDelegate {
         handler.received(channel, message);
     }
 
+    /**
+     * 如果是心跳事件消息或者只读事件请求消息那么message为 Request Response
+     * @see HeartbeatHandler#received(com.alibaba.dubbo.remoting.Channel, java.lang.Object)
+     * @see com.alibaba.dubbo.remoting.exchange.support.header.HeartBeatTask#run()
+     * 正常的请求响应消息 message为DecodeableRpcInvocation与DecodeableRpcResult 再次调用其解码方法即可。
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboCodec#decodeBody(com.alibaba.dubbo.remoting.Channel, java.io.InputStream, byte[])
+     */
     private void decode(Object message) {
         // 如果消息类型是Decodeable，进一步调用Decodeable的decode来解码
         if (message != null && message instanceof Decodeable) {

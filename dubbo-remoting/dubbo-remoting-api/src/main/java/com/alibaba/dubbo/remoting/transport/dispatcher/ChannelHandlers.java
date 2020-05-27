@@ -22,6 +22,7 @@ import com.alibaba.dubbo.common.extension.ExtensionLoader;
 import com.alibaba.dubbo.remoting.ChannelHandler;
 import com.alibaba.dubbo.remoting.Dispatcher;
 import com.alibaba.dubbo.remoting.exchange.support.header.HeartbeatHandler;
+import com.alibaba.dubbo.remoting.transport.DecodeHandler;
 import com.alibaba.dubbo.remoting.transport.MultiMessageHandler;
 
 /**
@@ -35,6 +36,10 @@ public class ChannelHandlers {
     protected ChannelHandlers() {
     }
 
+    /**
+     * @param url 提供者URL
+     * @param handler {@link DecodeHandler}
+     */
     public static ChannelHandler wrap(ChannelHandler handler, URL url) {
         return ChannelHandlers.getInstance().wrapInternal(handler, url);
     }

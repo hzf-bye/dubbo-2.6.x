@@ -31,6 +31,7 @@ public class ProviderInvokerWrapper<T> implements Invoker {
 
     /**
      * Invoker对象
+     *  DelegateProviderMetaDataInvoker实例
      */
     private Invoker<T> invoker;
 

@@ -26,6 +26,7 @@ import com.alibaba.dubbo.common.utils.NamedThreadFactory;
 import com.alibaba.dubbo.common.utils.UrlUtils;
 import com.alibaba.dubbo.registry.NotifyListener;
 import com.alibaba.dubbo.registry.Registry;
+import com.alibaba.dubbo.registry.integration.RegistryDirectory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -75,6 +76,22 @@ public abstract class AbstractRegistry implements Registry {
      * 由于value是列表，当存在多个的时候使用空格隔开。还有一个特殊的key.registies，保存的注册中心的地址。
      * 如果应用在启动过程中，注册中心无法连接或者宕机，dubbo会自动通过本地缓存加载Invokers。
      *
+     *
+     * 消费者从注册中心订阅节点失败后则从本地缓存中获取
+     * @see FailbackRegistry#subscribe(com.alibaba.dubbo.common.URL, com.alibaba.dubbo.registry.NotifyListener)
+     * @see AbstractRegistry#getCacheUrls(com.alibaba.dubbo.common.URL)
+     *
+     * e.q.
+     * key:com.alibaba.dubbo.demo.DemoService:1.0_local
+     * value: empty://192.168.0.107/com.alibaba.dubbo.demo.DemoService?application=demo-consumer&category=configurators&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1999&qos.port=33333&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589122785691&version=1.0_local empty://192.168.0.107/com.alibaba.dubbo.demo.DemoService?application=demo-consumer&category=routers&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1999&qos.port=33333&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589122785691&version=1.0_local dubbo://192.168.0.107:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=com.alibaba.dubbo.demo.DemoService&dubbo=2.0.2&generic=false&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1931&revision=1.0_local&side=provider&timeout=30000&timestamp=1589120898309&version=1.0_local empty://192.168.0.107/com.alibaba.dubbo.demo.DemoService?application=demo-consumer&category=providers,configurators,routers&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1999&qos.port=33333&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589122785691&version=1.0_local
+     * 空格分隔后就是
+     * empty://192.168.0.107/com.alibaba.dubbo.demo.DemoService?application=demo-consumer&category=configurators&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1999&qos.port=33333&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589122785691&version=1.0_local
+     * empty://192.168.0.107/com.alibaba.dubbo.demo.DemoService?application=demo-consumer&category=routers&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1999&qos.port=33333&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589122785691&version=1.0_local
+     * dubbo://192.168.0.107:20880/com.alibaba.dubbo.demo.DemoService?anyhost=true&application=demo-provider&bean.name=com.alibaba.dubbo.demo.DemoService&dubbo=2.0.2&generic=false&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1931&revision=1.0_local&side=provider&timeout=30000&timestamp=1589120898309&version=1.0_local
+     * empty://192.168.0.107/com.alibaba.dubbo.demo.DemoService?application=demo-consumer&category=providers,configurators,routers&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1999&qos.port=33333&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589122785691&version=1.0_local
+     * 即缓存的是当前key 在注册中心订阅的所有节点的信息
+     * @see AbstractRegistry#loadProperties()
+     * 当创建注册中心实例时会从本地加载持久化的注册信息至properties中
      */
     private final Properties properties = new Properties();
     // File cache timing writing
@@ -92,23 +109,28 @@ public abstract class AbstractRegistry implements Registry {
      * 因为每次写入file都是全部覆盖的写入，不是增量的去写入到文件，所以需要有这个版本号来避免老版本覆盖新版本。
      */
     private final AtomicLong lastCacheChanged = new AtomicLong();
-    // 已注册 URL 集合
-    // 注册的 URL 不仅仅可以是服务提供者的，也可以是服务消费者的
+
+    /**
+     * 已注册 URL 集合
+     * 注册的 URL 不仅仅可以是服务提供者的，也可以是服务消费者的
+     */
     private final Set<URL> registered = new ConcurrentHashSet<URL>();
     /**
      * 订阅URL的监听器集合
      *
-     * key为消费者Url，value为监听器集合包含RegistryDirectory
+     * key为消费者Url，value:{@link RegistryDirectory}
      */
     private final ConcurrentMap<URL, Set<NotifyListener>> subscribed = new ConcurrentHashMap<URL, Set<NotifyListener>>();
     /**
      * 内存中的服务缓存对象
-     * key 消费者的URL
+     * key 消费者或者提供者的URL，例如消费者订阅量providers、consumers、routes、configurators四个节点，提供者订阅量configurators一个节点
      * 内层map key是分类，包含providers、consumers、routes、configurators四种
      * 内层map value则是对应的服务列表，对于没有服务提供者提供服务的URL，它会以特殊的empty://前缀开头
      */
     /**
      * 跟properties的区别，第一是数据来源不是文件，而是从注册中心中读取，第二个是notified根据分类把同一类的值做了聚合。
+     * @see AbstractRegistry#saveProperties(com.alibaba.dubbo.common.URL)
+     * 中将notified中的数据保存至properties中随后持久化至本地文件中
      */
     private final ConcurrentMap<URL, Map<String, List<URL>>> notified = new ConcurrentHashMap<URL, Map<String, List<URL>>>();
     /**
@@ -458,6 +480,12 @@ public abstract class AbstractRegistry implements Registry {
         }
     }
 
+    /**
+     * 当创建注册中心实例时调用此方法，
+     * @param urls 注册中心URL集合
+     *
+     *
+     */
     protected void notify(List<URL> urls) {
         if (urls == null || urls.isEmpty()) return;
 
@@ -498,6 +526,9 @@ public abstract class AbstractRegistry implements Registry {
      * 1、发起订阅后，会获取全量数据，此时会调用notify方法。即Registry 获取到了全量数据
      * 2、每次注册中心发生变更时会调用notify方法虽然变化是增量，调用这个方法的调用方，已经进行处理，传入的urls依然是全量的。
      * 3、listener.notify，通知监听器，例如，有新的服务提供者启动时，被通知，创建新的 Invoker 对象。
+     * @param url 之前往zk中注册的URL，可以是消费者也可以是提供者
+     * @param listener 当url订阅的子节点变化是所通知的监听器
+     * @param urls  url订阅的所有的子节点的对应的url
      */
     protected void notify(URL url, NotifyListener listener, List<URL> urls) {
         if (url == null) {

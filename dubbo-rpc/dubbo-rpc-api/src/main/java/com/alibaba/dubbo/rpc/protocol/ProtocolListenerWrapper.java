@@ -38,10 +38,10 @@ import java.util.Collections;
  * {@link com.alibaba.dubbo.common.extension.ExtensionLoader#cachedWrapperClasses}
  * 详见com.alibaba.dubbo.common.extension.ExtensionLoader#loadClass(java.util.Map, java.net.URL, java.lang.Class, java.lang.String)
  *
- * ProtocolFilterWrapper同理，在文件META-INF/dubbo/internal/com.alibaba.dubbo.rpc.Protocol中定义了
+ * ProtocolFilterWrapper同理，在文件dubbo-rpc/dubbo-rpc-api/META-INF/dubbo/internal/com.alibaba.dubbo.rpc.Protocol中定义了
  * ProtocolFilterWrapper,ProtocolListenerWrapper
  *
- * cachedWrapperClasses是set类型，因此添加进set后的顺序是ProtocolListenerWrapper,ProtocolFilterWrapper
+ * cachedWrapperClasses是set类型，因此添加进set后的顺序是ProtocolListenerWrapper,ProtocolFilterWrapper（set中的顺序不是按照添加顺序的，根据key的hashCode决定）
  *
  * 因此ProtocolListenerWrapper中持有的Protocol实例就是DubboProtocol(DubboProtocol是默认的Protocol)
  * 详见方法
@@ -53,6 +53,9 @@ import java.util.Collections;
  * 然后ProtocolFilterWrapper的protocol.export方法调用的是ProtocolListenerWrapper的export方法
  * 然后ProtocolListenerWrapper的protocol.export方法调用的是DubboProtocol的export方法
  * 因此整个调用链如上
+ *
+ * 其实上面的逻辑相当于spring里面的aop，在执行目标方法{@link com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#export(com.alibaba.dubbo.rpc.Invoker)}
+ * 前进行了两次包装，也就是增强。
  *
  *
  *

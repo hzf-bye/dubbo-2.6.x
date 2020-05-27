@@ -64,14 +64,14 @@ public class GenericFilter implements Filter {
             // 获得请求参数
             Object[] args = (Object[]) inv.getArguments()[2];
             try {
-                // 获得方法
+                // f反射获取调用的获得方法
                 Method method = ReflectUtils.findMethodByMethodSignature(invoker.getInterface(), name, types);
                 // 获得该方法的参数类型
                 Class<?>[] params = method.getParameterTypes();
                 if (args == null) {
                     args = new Object[params.length];
                 }
-                // 获得附加值
+                // 获取泛化引用方使用的泛化类型
                 String generic = inv.getAttachment(Constants.GENERIC_KEY);
 
                 // 如果附加值为空，在用上下文携带的附加值
@@ -152,7 +152,7 @@ public class GenericFilter implements Filter {
                 throw new RpcException(e.getMessage(), e);
             }
         }
-        // 调用下一个调用链
+        // 不是泛化调动、调用下一个调用链
         return invoker.invoke(inv);
     }
 

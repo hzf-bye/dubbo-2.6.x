@@ -25,6 +25,7 @@ import com.alibaba.dubbo.common.logger.LoggerFactory;
 import com.alibaba.dubbo.remoting.ChannelHandler;
 import com.alibaba.dubbo.remoting.Codec;
 import com.alibaba.dubbo.remoting.Codec2;
+import com.alibaba.dubbo.remoting.exchange.Exchangers;
 import com.alibaba.dubbo.remoting.transport.codec.CodecAdapter;
 
 /**
@@ -38,6 +39,18 @@ public abstract class AbstractEndpoint extends AbstractPeer implements Resetable
 
     /**
      * 编解码器
+     * 默认
+     * 客户端
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#initClient(com.alibaba.dubbo.common.URL)
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboCountCodec
+     * 服务端
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#createServer(com.alibaba.dubbo.common.URL)
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboCountCodec
+     *
+     * @see AbstractEndpoint#getChannelCodec(com.alibaba.dubbo.common.URL)
+     * 获取到的codecName为dubbo，其对应的扩展类为DubboCountCodec，而不是DubboCodec
+     *
+     *
      */
     private Codec2 codec;
 
@@ -47,10 +60,15 @@ public abstract class AbstractEndpoint extends AbstractPeer implements Resetable
     private int timeout;
 
     /**
-     * 连接超时时间
+     * 连接超时时间，默认3s
      */
     private int connectTimeout;
 
+    /**
+     *
+     * @param url 提供者URL
+     * @param handler {@link com.alibaba.dubbo.remoting.transport.MultiMessageHandler}
+     */
     public AbstractEndpoint(URL url, ChannelHandler handler) {
         super(url, handler);
         //获取编解码器，这里是DubboCountCodec

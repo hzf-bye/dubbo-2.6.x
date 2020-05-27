@@ -56,31 +56,39 @@ public abstract class FailbackRegistry extends AbstractRegistry {
 
     /**
      * 发起注册失败的URL集合
+     * @see FailbackRegistry#recover() 在重连上zk时会将已经注册的信息存入failedRegistered中，等待重新注册
+     * @see FailbackRegistry#retry() 定时重新注册
+     *
      */
     private final Set<URL> failedRegistered = new ConcurrentHashSet<URL>();
 
     /**
      * 取消注册失败的URL集合
+     * @see FailbackRegistry#retry() 定时取消注册
      */
     private final Set<URL> failedUnregistered = new ConcurrentHashSet<URL>();
 
     /**
      * 发起订阅失败的监听器集合
+     * @see FailbackRegistry#retry() 定时发起订阅
      */
     private final ConcurrentMap<URL, Set<NotifyListener>> failedSubscribed = new ConcurrentHashMap<URL, Set<NotifyListener>>();
 
     /**
      * 取消订阅失败的监听器集合
+     * @see FailbackRegistry#retry() 定时取消订阅
      */
     private final ConcurrentMap<URL, Set<NotifyListener>> failedUnsubscribed = new ConcurrentHashMap<URL, Set<NotifyListener>>();
 
     /**
      * 通知失败的URl集合
+     * @see FailbackRegistry#retry() 定时通知
      */
     private final ConcurrentMap<URL, Map<NotifyListener, List<URL>>> failedNotified = new ConcurrentHashMap<URL, Map<NotifyListener, List<URL>>>();
 
     /**
      * The time in milliseconds the retryExecutor will wait
+     * 定时任务时间间隔，默认5s
      */
     private final int retryPeriod;
 
@@ -230,12 +238,13 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         removeFailedSubscribed(url, listener);
         try {
             // Sending a subscription request to the server side
-            // 向服务器端发送订阅请求
+            // 向注册中心发送订阅请求
             //模板方法，由子类自行实现
             doSubscribe(url, listener);
         } catch (Exception e) {
             Throwable t = e;
 
+            //订阅失败，则从本地缓存中获取订阅信息
             List<URL> urls = getCacheUrls(url);
             if (urls != null && !urls.isEmpty()) {
                 notify(url, listener, urls);
@@ -295,6 +304,9 @@ public abstract class FailbackRegistry extends AbstractRegistry {
 
     /**
      * 可以notify方法与上面四个方法不一样，他还是又回去调用了父类AbstractRegistry的notify
+     * @param url 之前往zk中注册的URL，可以是消费者也可以是提供者
+     * @param listener 当url订阅的子节点变化是所通知的监听器
+     * @param urls  url订阅的所有的子节点的对应的url
      */
     @Override
     protected void notify(URL url, NotifyListener listener, List<URL> urls) {

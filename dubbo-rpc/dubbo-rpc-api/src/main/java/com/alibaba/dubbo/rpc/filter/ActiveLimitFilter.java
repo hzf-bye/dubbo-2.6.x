@@ -43,9 +43,9 @@ public class ActiveLimitFilter implements Filter {
         URL url = invoker.getUrl();
         // 获得方法名称
         String methodName = invocation.getMethodName();
-        // 获得并发调用数（单个服务的单个方法），默认为0
+        // 获得并发调用数（单个服务的单个方法），默认为0，表示不限制调用数量
         int max = invoker.getUrl().getMethodParameter(methodName, Constants.ACTIVES_KEY, 0);
-        // 通过方法名来获得对应的状态
+        // 通过URL与方法名来获得对应的状态
         RpcStatus count = RpcStatus.getStatus(invoker.getUrl(), invocation.getMethodName());
         if (max > 0) {
             // 获得该方法调用的超时时间
@@ -68,7 +68,7 @@ public class ActiveLimitFilter implements Filter {
                         // 获得累计时间
                         long elapsed = System.currentTimeMillis() - start;
                         // 如果累计时间大于超时时间，则抛出异常，说明此时没有其他线程唤醒此线程，就意味着活跃数量还是大于等于最大的并发调用数量
-                        // 那么报错
+                        // 且已经超时了，那么报错
                         remain = timeout - elapsed;
                         if (remain <= 0) {
                             throw new RpcException("Waiting concurrent invoke timeout in client-side for service:  "
@@ -89,7 +89,7 @@ public class ActiveLimitFilter implements Filter {
             try {
                 // 调用后面的调用链，如果没有抛出异常，则算成功
                 Result result = invoker.invoke(invocation);
-                // 结束计数，记录时间
+                // 结束计数，记录时间，以及活跃数减1
                 RpcStatus.endCount(url, methodName, System.currentTimeMillis() - begin, true);
                 return result;
             } catch (RuntimeException t) {
@@ -99,6 +99,7 @@ public class ActiveLimitFilter implements Filter {
         } finally {
             if (max > 0) {
                 synchronized (count) {
+                    //通知正在等待的线程
                     count.notify();
                 }
             }

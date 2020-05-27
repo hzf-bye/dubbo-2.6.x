@@ -54,7 +54,7 @@ public class GenericImplFilter implements Filter {
     public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
         // 获得泛化的值
         String generic = invoker.getUrl().getParameter(Constants.GENERIC_KEY);
-        // 如果该值是nativejava或者bean或者true，并且不是一个返回调用
+        // 如果该值是nativejava或者bean或者true，并且不是一个泛化调用
         if (ProtocolUtils.isGeneric(generic)
                 && !Constants.$INVOKE.equals(invocation.getMethodName())
                 && invocation instanceof RpcInvocation) {
@@ -159,21 +159,25 @@ public class GenericImplFilter implements Filter {
             return result;
         }
 
-        // 如果是泛化调用
+        // 判断是否为泛化调用
+
+        //泛化调动有三个参数 第一个为当为名称，第二个为方法参数类型列表，第三个为防擦参数值列表
         if (invocation.getMethodName().equals(Constants.$INVOKE)
                 && invocation.getArguments() != null
                 && invocation.getArguments().length == 3
                 && ProtocolUtils.isGeneric(generic)) {
 
             Object[] args = (Object[]) invocation.getArguments()[2];
+            //如果是nativejava方式
             if (ProtocolUtils.isJavaGenericSerialization(generic)) {
 
                 for (Object arg : args) {
-                    // 如果调用消息不是字节数组类型，则抛出异常
+                    // 如果调用参数不是字节数组类型，则抛出异常
                     if (!(byte[].class == arg.getClass())) {
                         error(generic, byte[].class.getName(), arg.getClass().getName());
                     }
                 }
+            //如果是bean方式
             } else if (ProtocolUtils.isBeanGenericSerialization(generic)) {
                 for (Object arg : args) {
                     if (!(arg instanceof JavaBeanDescriptor)) {
@@ -182,7 +186,7 @@ public class GenericImplFilter implements Filter {
                 }
             }
 
-            // 设置附加值
+            // 设置泛化调用方式，以便服务端使用
             ((RpcInvocation) invocation).setAttachment(
                     Constants.GENERIC_KEY, invoker.getUrl().getParameter(Constants.GENERIC_KEY));
         }

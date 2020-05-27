@@ -77,30 +77,8 @@ public abstract class Proxy {
      * @return Proxy instance.
      * ccp 用于为服务接口生成代理类，比如我们有一个 DemoService 接口，这个接口代理类就是由 ccp 生成的。
      * ccm 则是用于为 org.apache.dubbo.common.bytecode.Proxy 抽象类生成子类，主要是实现 Proxy 类的抽象方法
-     * 下面以 org.apache.dubbo.demo.DemoService 这个接口为例，来看一下该接口代理类代码大致是怎样的
-     *
-     * package org.apache.dubbo.common.bytecode;
-     *
-     * public class proxy0 implements org.apache.dubbo.demo.DemoService {
-     *
-     *     public static java.lang.reflect.Method[] methods;
-     *
-     *     private java.lang.reflect.InvocationHandler handler;
-     *
-     *     public proxy0() {
-     *     }
-     *
-     *     public proxy0(java.lang.reflect.InvocationHandler arg0) {
-     *         handler = $1;
-     *     }
-     *
-     *     public java.lang.String sayHello(java.lang.String arg0) {
-     *         Object[] args = new Object[1];
-     *         args[0] = ($w) $1;
-     *         Object ret = handler.invoke(this, methods[0], args);
-     *         return (java.lang.String) ret;
-     *     }
-     * }
+     * 下面以 DemoService 这个接口为例，来看一下该接口代理类代码大致是怎样的
+     * @see proxy0
      */
     public static Proxy getProxy(ClassLoader cl, Class<?>... ics) {
         if (ics.length > 65535)

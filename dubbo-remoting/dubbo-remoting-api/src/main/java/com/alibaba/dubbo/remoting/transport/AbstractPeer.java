@@ -32,6 +32,9 @@ import com.alibaba.dubbo.remoting.RemotingException;
  */
 public abstract class AbstractPeer implements Endpoint, ChannelHandler {
 
+    /**
+     * {@link com.alibaba.dubbo.remoting.transport.MultiMessageHandler}
+     */
     private final ChannelHandler handler;
 
     private volatile URL url;
@@ -47,6 +50,10 @@ public abstract class AbstractPeer implements Endpoint, ChannelHandler {
      */
     private volatile boolean closed;
 
+    /**
+     * @param url 提供者URL
+     * @param handler {@link com.alibaba.dubbo.remoting.transport.MultiMessageHandler}
+     */
     public AbstractPeer(URL url, ChannelHandler handler) {
         if (url == null) {
             throw new IllegalArgumentException("url == null");
@@ -134,6 +141,11 @@ public abstract class AbstractPeer implements Endpoint, ChannelHandler {
         return closing && !closed;
     }
 
+    /**
+     * 消费端发起tcp连接并完成后，服务端此方法被调用
+     * @param ch
+     * @throws RemotingException
+     */
     @Override
     public void connected(Channel ch) throws RemotingException {
         if (closed) {

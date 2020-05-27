@@ -28,6 +28,7 @@ import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.cluster.Directory;
 import com.alibaba.dubbo.rpc.cluster.LoadBalance;
+import com.alibaba.dubbo.rpc.cluster.support.wrapper.MockClusterInvoker;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -48,6 +49,12 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(FailoverClusterInvoker.class);
 
+    /**
+     *
+     * @param directory
+     * 1. {@link com.alibaba.dubbo.registry.integration.RegistryDirectory}
+     * 2.
+     */
     public FailoverClusterInvoker(Directory<T> directory) {
         super(directory);
     }
@@ -56,6 +63,8 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
      *  doInvoke 方法首先是获取重试次数，然后根据重试次数进行循环调用，失败后进行重试。
      *  在 for 循环内，首先是通过负载均衡组件选择一个 Invoker，然后再通过这个 Invoker 的 invoke 方法进行远程调用。
      *  如果失败了，记录下异常，并进行重试。重试时会再次调用父类的 list 方法列举 Invoker。
+     *
+     * @param invokers {@link MockClusterInvoker}
      */
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})

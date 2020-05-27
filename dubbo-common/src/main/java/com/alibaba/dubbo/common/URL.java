@@ -74,6 +74,7 @@ public final class URL implements Serializable {
 
     /**
      * 协议名
+     * 如dubbo
      */
     private final String protocol;
 

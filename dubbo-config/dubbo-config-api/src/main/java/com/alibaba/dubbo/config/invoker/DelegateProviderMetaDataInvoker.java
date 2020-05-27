@@ -22,8 +22,21 @@ import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcException;
+import com.alibaba.dubbo.rpc.proxy.AbstractProxyInvoker;
+import com.alibaba.dubbo.rpc.proxy.javassist.JavassistProxyFactory;
 
+/**
+ * 提供者对应的AbstractProxyInvoker与ServiceBean的封装
+ *
+ * @param <T>
+ */
 public class DelegateProviderMetaDataInvoker<T> implements Invoker {
+
+    /**
+     * @see JavassistProxyFactory#getInvoker(java.lang.Object, java.lang.Class, com.alibaba.dubbo.common.URL)
+     * @see AbstractProxyInvoker#AbstractProxyInvoker(java.lang.Object, java.lang.Class, com.alibaba.dubbo.common.URL)
+     * 生成的匿名类
+     */
     protected final Invoker<T> invoker;
     private ServiceConfig metadata;
 

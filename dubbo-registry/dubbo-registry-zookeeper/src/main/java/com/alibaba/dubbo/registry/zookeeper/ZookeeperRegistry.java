@@ -93,7 +93,8 @@ public class ZookeeperRegistry extends FailbackRegistry {
 
     /**
      * 监听器集合
-     * key为消费者url
+     * key为消费者或者提供者url
+     * @see ZookeeperRegistry#doSubscribe(com.alibaba.dubbo.common.URL, com.alibaba.dubbo.registry.NotifyListener)
      *
      */
     private final ConcurrentMap<URL, ConcurrentMap<NotifyListener, ChildListener>> zkListeners = new ConcurrentHashMap<URL, ConcurrentMap<NotifyListener, ChildListener>>();
@@ -334,7 +335,16 @@ public class ZookeeperRegistry extends FailbackRegistry {
                      * 如果子节点不存在数据或者存在数据但是不符合此消费者url，那么就返回一个empty://的URL
                      * 且此URL只是将protocol设置为empty且category设置为path对应的值，其它属性都与consumer相同
                      *
-                     * children大小就代表有几个提供者
+                     * children大小就代表有几个子节点
+                     * 然后校验当前URL与 zk中的子节点是否匹配，匹配则加入到urls中，
+                     *
+                     * 打比方当前消费者订阅了三个子节点
+                     * dubbo/dubbo.common.hello.service.HelloService/providers/
+                     * dubbo/dubbo.common.hello.service.HelloService/configurators/
+                     * dubbo/dubbo.common.hello.service.HelloService/routers/
+                     *
+                     * 若zk中此时存在对应的子节点，则说明存在订阅的数据，那么就会加入到urls中，通知该节点
+                     * 若无对应的子节点则返回empty://
                      */
                     List<String> children = zkClient.addChildListener(path, zkListener);
                     if (children != null) {

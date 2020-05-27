@@ -32,9 +32,12 @@
 
     <!-- generate proxy for the remote service, then demoService can be used in the same way as the
     local regular interface -->
-    <dubbo:reference id="demoService" check="false" interface="com.alibaba.dubbo.demo.DemoService" version="1.0_local" retries="0" timeout="4000000">
+    <dubbo:reference id="demoService" check="false" interface="com.alibaba.dubbo.demo.DemoService" version="1.0_local" retries="0" timeout="4000000" actives="3" >
         <!--<dubbo:method name="sayHello" async="true" onreturn="demoCallback.onreturn" onthrow="demoCallback.onthrow"/>-->
         <dubbo:method name="sayHello" async="true"/>
+    </dubbo:reference>
+
+    <dubbo:reference id="hzfService" check="false" interface="com.alibaba.dubbo.demo.HzfService" version="1.0_local" retries="0" timeout="4000000" mock = "force">
     </dubbo:reference>
 
     <!-- 指定要消费的服务 -->

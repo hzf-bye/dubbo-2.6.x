@@ -129,8 +129,12 @@ public class FutureFilter implements Filter {
      * 方法执行返回后拦截
      *
      * 方法第一个参数为调用方法的返回值，其余为调用方法的参数；
+     * @see com.alibaba.dubbo.config.ReferenceConfig#init()
+     * 中调用 StaticContext.getSystemContext().putAll(attributes);
+     * 设置方法的属性值StaticContext中
      */
     private void fireReturnCallback(final Invoker<?> invoker, final Invocation invocation, final Object result) {
+        //com.alibaba.dubbo.demo.DemoService:1.0_local.sayHello.onreturn.method
         final Method onReturnMethod = (Method) StaticContext.getSystemContext().get(StaticContext.getKey(invoker.getUrl(), invocation.getMethodName(), Constants.ON_RETURN_METHOD_KEY));
         final Object onReturnInst = StaticContext.getSystemContext().get(StaticContext.getKey(invoker.getUrl(), invocation.getMethodName(), Constants.ON_RETURN_INSTANCE_KEY));
 
@@ -178,6 +182,9 @@ public class FutureFilter implements Filter {
     /**
      * 方法执行有异常拦截
      * 方法第一个参数为调用异常，其余为调用方法的参数。
+     * @see com.alibaba.dubbo.config.ReferenceConfig#init()
+     * 中调用 StaticContext.getSystemContext().putAll(attributes);
+     * 设置方法的属性值StaticContext中
      */
     private void fireThrowCallback(final Invoker<?> invoker, final Invocation invocation, final Throwable exception) {
         final Method onthrowMethod = (Method) StaticContext.getSystemContext().get(StaticContext.getKey(invoker.getUrl(), invocation.getMethodName(), Constants.ON_THROW_METHOD_KEY));

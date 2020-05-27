@@ -20,6 +20,7 @@ import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.cluster.Cluster;
 import com.alibaba.dubbo.rpc.cluster.Directory;
+import com.alibaba.dubbo.rpc.cluster.support.FailoverCluster;
 
 /**
  * mock impl
@@ -31,7 +32,7 @@ import com.alibaba.dubbo.rpc.cluster.Directory;
 public class MockClusterWrapper implements Cluster {
 
     /**
-     * 默认为FailoverCluster
+     * 默认为{@link FailoverCluster}
      */
     private Cluster cluster;
 

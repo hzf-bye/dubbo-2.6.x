@@ -20,15 +20,20 @@ import com.alibaba.dubbo.remoting.Channel;
 import com.alibaba.dubbo.remoting.ChannelHandler;
 import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.exchange.support.MultiMessage;
+import com.alibaba.dubbo.remoting.exchange.support.header.HeartbeatHandler;
+import com.alibaba.dubbo.remoting.transport.dispatcher.ChannelHandlers;
 
 /**
  *
- * @see MultiMessage
+ * 创建
+ * @see ChannelHandlers#wrapInternal(com.alibaba.dubbo.remoting.ChannelHandler, com.alibaba.dubbo.common.URL)
  */
 public class MultiMessageHandler extends AbstractChannelHandlerDelegate {
 
     public MultiMessageHandler(ChannelHandler handler) {
-        //HeartbeatHandler实例
+        /**
+         * @see HeartbeatHandler#HeartbeatHandler(com.alibaba.dubbo.remoting.ChannelHandler)
+         */
         super(handler);
     }
 

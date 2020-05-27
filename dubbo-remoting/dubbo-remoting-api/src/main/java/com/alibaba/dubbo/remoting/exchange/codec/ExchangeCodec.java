@@ -45,17 +45,17 @@ import java.io.InputStream;
  * ExchangeCodec.
  *
  * dubbo协议头由16字节组成
- * 第1,2字节 存储0xdabb 魔法树
+ * 第1,2字节 存储0xdabb 魔法数
  * 第3个字节(16-23位)
- *      第16位：是否为双向的rpc调用（比如方法拥有返回值），0为Response，1为Request
- *      第17位：仅在第15为被设置为1时有效，0为单向调用，1为双向调用；比如在优雅停机时服务端发送readonly不需要双向调用，这里标志位就为0
- *      第18位：事件标识，0为当前数据包是请求或者响应包，1为当前数据包是心跳包（框架为了保活TCP连接，每次客户端和服务端互相发送心跳包时这个标志位就被设定，设置了心跳报文不会透传到业务方法调用，仅用于框架内部保活机制）
- *      第19-23位：序列化器编码，2-Hessian2Serialization,3-JavaSerialization,4-CompactedJavaSerialization,6-FastJsonSerialization,7-NativeJavaSerialization,8-KryoSerialization,9-FstSerialization
- * 第4字节(24-31位)
- *      状态：20-OK,30-CLIENT_TIMEOUT,31-SERVER_TIMEOUT,40-BAD_REQUEST,50-BAD_RESPONSE,60-SERVICE_NOT_FOUND,70-SERVER_ERROR,80-SERVER_ERROR,90-CLIENT_ERROR,100-SERVER_THREADPOOL_EXHAUSTED_ERROR(服务端线程池满拒绝执行)
- * 第5-12字节
+ *      第23位：请求还是响应标识，0为Response，1为Request
+ *      第22位：仅在第16为被设置为1时有效，0为单向调用，1为双向调用；比如在优雅停机时服务端发送readonly不需要双向调用，这里标志位就为0
+ *      第21位：事件标识，0为当前数据包是请求或者响应包，1为当前数据包是心跳包（框架为了保活TCP连接，每次客户端和服务端互相发送心跳包时这个标志位就被设定，设置了心跳报文不会透传到业务方法调用，仅用于框架内部保活机制）
+ *      第16-20位：序列化器编码，2-Hessian2Serialization,3-JavaSerialization,4-CompactedJavaSerialization,6-FastJsonSerialization,7-NativeJavaSerialization,8-KryoSerialization,9-FstSerialization
+ * 第4字节(24-31位) 只在响应报文里才设置
+ *      状态：{@link Response}
+ * 第5-12字节，共8字节
  *      请求编号，这8个字节存储RPC请求的唯一id，用来将请求和响应做关联
- * 第13-16字节
+ * 第13-16字节，共4字节
  *      占用的4个字节存储消息体长度。在一次RPC请求过程中，消息体中一次会存储7部分内容，分别是：dubbo版本号，服务接口名，服务接口版本，方法名，参数类型，方法参数值，请求额外参数（attachment）
  *
  */
@@ -77,10 +77,12 @@ public class ExchangeCodec extends TelnetCodec {
     protected static final short MAGIC = (short) 0xdabb;
     /**
      * Magic High，也就是0-7位：11011010
+     * da
      */
     protected static final byte MAGIC_HIGH = Bytes.short2bytes(MAGIC)[0];
     /**
      * Magic Low  8-15位 ：10111011
+     * bb
      */
     protected static final byte MAGIC_LOW = Bytes.short2bytes(MAGIC)[1];
     // message flag.
@@ -126,10 +128,12 @@ public class ExchangeCodec extends TelnetCodec {
 
     @Override
     public Object decode(Channel channel, ChannelBuffer buffer) throws IOException {
+        //将dubbo协议头读取到header
         int readable = buffer.readableBytes();
         //最多读取16个字节并分配存储空间
         byte[] header = new byte[Math.min(readable, HEADER_LENGTH)];
         buffer.readBytes(header);
+        //解析dubbo协议数据部分
         return decode(channel, buffer, readable, header);
     }
 
@@ -286,10 +290,10 @@ public class ExchangeCodec extends TelnetCodec {
 
         // set request and serialization flag.
         // 16-23位为serialization编号，用到或运算10000000|serialization编号，例如serialization编号为10，则为10000010
-        // 第16位表示请求标志，这里因为是为Request所以为1；19-23：序列化协议序号，比如Hessian2协议（Hessian2Serialization）值为2
+        // 第23位表示请求标志，这里因为是为Request所以为1；16-20：序列化协议序号，比如Hessian2协议（Hessian2Serialization）值为2
         header[2] = (byte) (FLAG_REQUEST | serialization.getContentTypeId());
 
-        //设置第17位与第18位的值
+        //设置第22位与第23位的值
         if (req.isTwoWay()) header[2] |= FLAG_TWOWAY;
         if (req.isEvent()) header[2] |= FLAG_EVENT;
 

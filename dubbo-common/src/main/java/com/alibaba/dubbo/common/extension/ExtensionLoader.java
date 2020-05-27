@@ -18,6 +18,7 @@ package com.alibaba.dubbo.common.extension;
 
 import com.alibaba.dubbo.common.Constants;
 import com.alibaba.dubbo.common.URL;
+import com.alibaba.dubbo.common.extension.factory.AdaptiveExtensionFactory;
 import com.alibaba.dubbo.common.extension.support.ActivateComparator;
 import com.alibaba.dubbo.common.logger.Logger;
 import com.alibaba.dubbo.common.logger.LoggerFactory;
@@ -55,6 +56,11 @@ import java.util.regex.Pattern;
  * @see com.alibaba.dubbo.common.extension.SPI
  * @see com.alibaba.dubbo.common.extension.Adaptive
  * @see com.alibaba.dubbo.common.extension.Activate
+ *
+ * dubbo扩展点增加了对ioc与aop的支持
+ * 1. ioc:{@link ExtensionLoader#injectExtension(java.lang.Object)} 允许set方式注入其它扩展点或者从spring中加载对应的bean
+ * 2. aop:{@link ExtensionLoader#createExtension(java.lang.String)} 扩展点有包装扩展类{@link ExtensionLoader#cachedWrapperClasses}
+ *  那么会为每个目标扩展点前置执行包装扩展类的方法。
  */
 public class ExtensionLoader<T> {
 
@@ -113,7 +119,12 @@ public class ExtensionLoader<T> {
      *
      * 用于调用 {@link #injectExtension(Object)} 方法，向拓展对象注入依赖属性。
      *
-     * 例如，StubProxyFactoryWrapper 中有 `Protocol protocol` 属性。
+     * 例如，{@link com.alibaba.dubbo.rpc.proxy.wrapper.StubProxyFactoryWrapper#setProtocol(com.alibaba.dubbo.rpc.Protocol)}
+     * 则会自动注入
+     *
+     * @see ExtensionLoader#ExtensionLoader(java.lang.Class)
+     * 如果{@link ExtensionLoader#type}不是ExtensionFactory，那么默认为
+     * @see AdaptiveExtensionFactory
      */
     private final ExtensionFactory objectFactory;
 
@@ -137,20 +148,26 @@ public class ExtensionLoader<T> {
      * 对应的{@link #type}全路径名文件的中的数据
      *
      * 不包含如下两种类型：
-     *  1. 自适应拓展实现类。对应的实现类中带有@Adaptive注解的类。例如 AdaptiveExtensionFactory
-     *  2. 带唯一参数为拓展接口的构造方法的实现类，或者说拓展 Wrapper 实现类。例如，ProtocolFilterWrapper 。
+     *  1. 自适应拓展实现类。对应的实现类中带有@Adaptive注解的类。例如 {@link com.alibaba.dubbo.common.extension.factory.AdaptiveExtensionFactory}
+     *  2. 带唯一参数为拓展接口的构造方法的实现类，或者说拓展 Wrapper 实现类。例如，{@link com.alibaba.dubbo.rpc.protocol.ProtocolFilterWrapper}
      *   拓展 Wrapper 实现类，会添加到 {@link #cachedWrapperClasses} 中
      *
-     * 通过 {@link #loadExtensionClasses} 加载
+     * 通过 {@link ExtensionLoader#getExtensionClasses()}{@link #loadExtensionClasses} 加载
      */
     private final Holder<Map<String, Class<?>>> cachedClasses = new Holder<Map<String, Class<?>>>();
 
     /**
+     *
      * 拓展名与 @Activate 的映射
      *
-     * 例如，AccessLogFilter。** 用于 {@link #getActivateExtension(URL, String)}
+     * 例如，{@link com.alibaba.dubbo.rpc.filter.AccessLogFilter}。
+     * 用于 {@link #getActivateExtension(URL, String)}
      *
      * 如果某个扩展类有@Activate注解，则会缓存到此
+     *
+     * 例如文件中存在下面配置
+     * echo=com.alibaba.dubbo.rpc.filter.EchoFilter
+     * key为echo
      *
      * {@link #loadClass(Map, java.net.URL, Class, String)}赋值
      */
@@ -166,18 +183,19 @@ public class ExtensionLoader<T> {
      *      key：dubbo value：ProtocolFilterWrapper->ProtocolListenerWrapper->DubboProtocol
      *      key：injvm value：ProtocolFilterWrapper->ProtocolListenerWrapper->DubboProtocol
      *
-     * 通过 {@link #loadExtensionClasses} 加载
+     * 通过 {@link ExtensionLoader#getExtension(java.lang.String)} 加载
      *
      */
     private final ConcurrentMap<String, Holder<Object>> cachedInstances = new ConcurrentHashMap<String, Holder<Object>>();
 
     /**
-     * 缓存的自适应( Adaptive )拓展对象，例如例如AdaptiveExtensionFactory类的对象
+     * 缓存的自适应( Adaptive )拓展对象，例如{@link com.alibaba.dubbo.common.extension.factory.AdaptiveExtensionFactory}类的对象
+     * 实现类有@Adaptive注解的类
      */
     private final Holder<Object> cachedAdaptiveInstance = new Holder<Object>();
 
     /**
-     * 缓存的自适应拓展对象的类，例如AdaptiveExtensionFactory类
+     * 缓存的自适应拓展对象的类，例如{@link com.alibaba.dubbo.common.extension.factory.AdaptiveExtensionFactory}类
      *
      * {@link #type} 缓存对应的实现类中带有@Adaptive注解的类
      * 如果type对应多个实现类，且有多个实现类都有@Adaptive注解那么会报错，详见
@@ -190,7 +208,8 @@ public class ExtensionLoader<T> {
     /**
      * 缓存的默认拓展名，就是@SPI中设置的值
      *
-     * 通过 {@link SPI} 注解获得
+     * 通过 接口中的{@link SPI} 注解获得
+     * @see ExtensionLoader#loadExtensionClasses()
      */
     private String cachedDefaultName;
 
@@ -316,12 +335,24 @@ public class ExtensionLoader<T> {
      * @see com.alibaba.dubbo.common.extension.Activate
      *
      * 获取自动激活的扩展类
+     * 1.首先获取所有带有Activate注解的类，
+     *  1.1如果存在<dubbo:service filter="-default" />这样的配置，那么则不会加载对应的扩展类 @1
+     *  1.2或者<dubbo:service filter="monitor" /> 则先不加载此应扩展类,在第二步中加载 @2
+     *  1.3或者<dubbo:service filter="-monitor" /> 则不会加载name为monitor的应扩展类 @3
+     *  1.4 扩展类 Activate注解中的value必须至少有一个在url中的parameters中的key存在才会被加载 @4
+     *
+     * 2.加载完带有Activate注解扩展类后再加载参数values对应的 普通扩展类或者上面未加载的扩展类 1.2中
+     *   2.1 仍然排除参数values中以 - 开头的 @5
+     *   2.2 存在配置 <dubbo:service filter="demo,default,demo2" /> 那么demo对应的扩展类会放在最前面，包括1中所加载的前面 @6
+     *   2.3 加载其他扩展类
+     *
      */
     public List<T> getActivateExtension(URL url, String[] values, String group) {
         List<T> exts = new ArrayList<T>();
         List<String> names = values == null ? new ArrayList<String>(0) : Arrays.asList(values);
         //判断不存在配置 `"-name"` 。
         //例如，<dubbo:service filter="-default" /> ，代表移除所有默认过滤器。
+        //@1
         if (!names.contains(Constants.REMOVE_VALUE_PREFIX + Constants.DEFAULT_KEY)) {
             //获得扩展实现类数组，把扩展实现类放到cachedClasses中
             getExtensionClasses();
@@ -335,9 +366,9 @@ public class ExtensionLoader<T> {
                     //不包含在自定义配置里。如果包含，会在下面的代码处理。
                     //判断是否配置移除。例如 <dubbo:service filter="-monitor" />，则 MonitorFilter 会被移除
                     //判断是否激活
-                    if (!names.contains(name)
-                            && !names.contains(Constants.REMOVE_VALUE_PREFIX + name)
-                            && isActive(activate, url)) {
+                    if (!names.contains(name) //@2
+                            && !names.contains(Constants.REMOVE_VALUE_PREFIX + name) //@3
+                            && isActive(activate, url)) { //@4
                         exts.add(ext);
                     }
                 }
@@ -349,10 +380,12 @@ public class ExtensionLoader<T> {
         for (int i = 0; i < names.size(); i++) {
             String name = names.get(i);
             //还是判断是否是被移除的配置
+            //@5
             if (!name.startsWith(Constants.REMOVE_VALUE_PREFIX)
                     && !names.contains(Constants.REMOVE_VALUE_PREFIX + name)) {
                 //在配置中把自定义的配置放在自动激活的扩展对象前面，可以让自定义的配置先加载
                 //例如 <dubbo:service filter="demo,default,demo2" /> ，则 DemoFilter 就会放在默认的过滤器前面。
+                //@6
                 if (Constants.DEFAULT_KEY.equals(name)) {
                     if (!usrs.isEmpty()) {
                         exts.addAll(0, usrs);
@@ -494,8 +527,9 @@ public class ExtensionLoader<T> {
     }
 
     public Set<String> getSupportedExtensions() {
+        //获取所有普通扩展类
         Map<String, Class<?>> clazzes = getExtensionClasses();
-        //这里会进行一次排序，SPI在前面，Spring在后面
+        //这里会进行一次排序
         return Collections.unmodifiableSet(new TreeSet<String>(clazzes.keySet()));
     }
 
@@ -656,12 +690,15 @@ public class ExtensionLoader<T> {
             //看缓存中是否有该类的对象
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
             if (instance == null) {
-                //没有则创建对象，因为在getExtensionClasses已经判断，此clazz没有必须有无参构造函数，否则会报错
+                //没有则创建对象，因为在getExtensionClasses已经判断，此clazz必须有无参构造函数，否则会报错
                 //loadClass方法中的调用了clazz.getConstructor()，没报错说明有无参构造函数，这里直接通过无参构造函数实例化
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
                 instance = (T) EXTENSION_INSTANCES.get(clazz);
             }
-            //向对象中注入依赖的属性（自动装配），比如扩展类A又依赖了扩展类B
+            /**
+             * 向对象中注入依赖的属性（自动装配），比如扩展类A又依赖了扩展类B
+             * ioc依赖注入
+             */
             injectExtension(instance);
             //创建 Wrapper 扩展对象（自动包装）
             Set<Class<?>> wrapperClasses = cachedWrapperClasses;
@@ -670,6 +707,15 @@ public class ExtensionLoader<T> {
                 for (Class<?> wrapperClass : wrapperClasses) {
                     //找到构造方法参数类型为type（扩展的类型）的包装类。为其注入扩展类实例
                     //包装扩展类也可能有set方法需要注入其它扩展类，在此处理
+                    /**
+                     * 比如 对于 此时name 为dubbo来说，
+                     * 它对应的包装扩展类有ProtocolFilterWrapper与ProtocolListenerWrapper
+                     * 那么最终返回的instance是ProtocolFilterWrapper，而ProtocolFilterWrapper中的protocol属性是ProtocolListenerWrapper实例
+                     * ProtocolListenerWrapper中的protocol属性又是DubboProtocol实例
+                     * @see com.alibaba.dubbo.rpc.protocol.ProtocolListenerWrapper 中的详解。
+                     *
+                     * 类似于spring中的aop
+                     */
                     instance = injectExtension((T) wrapperClass.getConstructor(type).newInstance(instance));
                 }
             }
@@ -697,17 +743,23 @@ public class ExtensionLoader<T> {
                             && Modifier.isPublic(method.getModifiers())) {
                         /**
                          * Check {@link DisableInject} to see if we need auto injection for this property
+                         * 如果方法有@DisableInject注解 说明方法不需要注入
                          */
                         if (method.getAnnotation(DisableInject.class) != null) {
                             continue;
                         }
                         Class<?> pt = method.getParameterTypes()[0];
                         try {
-                            //获得属性，比如StubProxyFactoryWrapper类中有setProtocol方法，那么获取此次需要set的属性protocol，
+                            //获得属性，比如StubProxyFactoryWrapper类中有setProtocol方法，那么获取此时需要set的属性protocol，
                             String property = method.getName().length() > 3 ? method.getName().substring(3, 4).toLowerCase() + method.getName().substring(4) : "";
-                            //获得属性值，比如Protocol对象，也可能是Bean对象
+                            /**
+                             * 获得属性值对应的对象
+                             * 比如{@link com.alibaba.dubbo.config.Protocol$Adaptive}
+                             * 也可能是spring容器中获取到的Bean对象
+                             */
                             Object object = objectFactory.getExtension(pt, property);
                             if (object != null) {
+                                //通过反射调用方法注入
                                 method.invoke(instance, object);
                             }
                         } catch (Exception e) {
@@ -758,6 +810,7 @@ public class ExtensionLoader<T> {
      * 关键的就是loadDirectory方法（解析在下面给出），并且这里可以看出去找配置文件访问的资源路径顺序。
      */
     private Map<String, Class<?>> loadExtensionClasses() {
+        //首先获取默认扩展名
         final SPI defaultAnnotation = type.getAnnotation(SPI.class);
         if (defaultAnnotation != null) {
             //@SPI注解的value属性值值
@@ -823,6 +876,7 @@ public class ExtensionLoader<T> {
                             String name = null;
                             int i = line.indexOf('=');
                             if (i > 0) {
+                                //例如 echo=com.alibaba.dubbo.rpc.filter.EchoFilter
                                 //根据"="拆分key跟value
                                 name = line.substring(0, i).trim();
                                 line = line.substring(i + 1).trim();
@@ -945,9 +999,10 @@ public class ExtensionLoader<T> {
 
 
     private Class<?> getAdaptiveExtensionClass() {
+        //获取所有的扩展类
         getExtensionClasses();
-        //先从缓存中获取
         /**
+         * 先从缓存中获取
          * 缓存中获取到了说明当前{@link #type}对应的实现类中有@Adaptive注解，那么直接
          * 将此实现类作为自适应类的扩展实现，就不要再动态生成其实现类了
          * 即不要调用createAdaptiveExtensionClass方法生成类似于Transporter$Adpative这样的类

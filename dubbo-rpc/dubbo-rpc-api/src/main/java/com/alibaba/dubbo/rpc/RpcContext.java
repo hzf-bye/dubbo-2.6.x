@@ -68,7 +68,7 @@ public class RpcContext {
     };
 
     /**
-     * 附加值集合
+     * 附加值集合，隐式参数
      */
     private final Map<String, String> attachments = new HashMap<String, String>();
 
@@ -79,6 +79,9 @@ public class RpcContext {
 
     /**
      * 线程结果
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboInvoker#doInvoke(com.alibaba.dubbo.rpc.Invocation)
+     * 异步调用时为
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.FutureAdapter
      */
     private Future<?> future;
 
@@ -265,7 +268,9 @@ public class RpcContext {
     /**
      * set future.
      *
-     * @param future
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboInvoker#doInvoke(com.alibaba.dubbo.rpc.Invocation)
+     * 异步调用时为
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.FutureAdapter
      */
     public void setFuture(Future<?> future) {
         this.future = future;

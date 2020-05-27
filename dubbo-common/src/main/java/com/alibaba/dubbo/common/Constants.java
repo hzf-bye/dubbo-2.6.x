@@ -37,6 +37,14 @@ public class Constants {
 
     public static final String UNSUBSCRIBE = "unsubscribe";
 
+    /**
+     * 注册中心的节点名称 key
+     * value:
+     * @see Constants#PROVIDERS_CATEGORY
+     * @see Constants#CONSUMERS_CATEGORY
+     * @see Constants#ROUTERS_CATEGORY
+     * @see Constants#CONFIGURATORS_CATEGORY
+     */
     public static final String CATEGORY_KEY = "category";
 
     public static final String PROVIDERS_CATEGORY = "providers";
@@ -49,8 +57,18 @@ public class Constants {
 
     public static final String DEFAULT_CATEGORY = PROVIDERS_CATEGORY;
 
+    /**
+     * 标识提供者是否允许被消费
+     * true-允许
+     * @see com.alibaba.dubbo.registry.integration.RegistryDirectory#toInvokers(java.util.List)
+     */
     public static final String ENABLED_KEY = "enabled";
 
+    /**
+     * 标识提供者是否允许被消费
+     * true-不允许
+     * @see com.alibaba.dubbo.registry.integration.RegistryDirectory#toInvokers(java.util.List)
+     */
     public static final String DISABLED_KEY = "disabled";
 
     public static final String VALIDATION_KEY = "validation";
@@ -131,8 +149,14 @@ public class Constants {
 
     public static final int DEFAULT_HEARTBEAT = 60 * 1000;
 
+    /**
+     * 调用超时时间，默认1s
+     */
     public static final int DEFAULT_TIMEOUT = 1000;
 
+    /**
+     * 连接超时时间，默认3s
+     */
     public static final int DEFAULT_CONNECT_TIMEOUT = 3000;
 
 //    public static final int DEFAULT_REGISTRY_CONNECT_TIMEOUT = 5000;
@@ -161,10 +185,19 @@ public class Constants {
 
     public static final String CLUSTER_KEY = "cluster";
 
+    /**
+     * URL 中注册中心协议key 如zookeeper
+     */
     public static final String REGISTRY_KEY = "registry";
 
     public static final String MONITOR_KEY = "monitor";
 
+    /**
+     * URL parameters 中的key，标识是提供者或者是消费者
+     * value对应
+     * @see Constants#PROVIDER_SIDE
+     * @see Constants#CONSUMER_SIDE
+     */
     public static final String SIDE_KEY = "side";
 
     public static final String PROVIDER_SIDE = "provider";
@@ -197,6 +230,11 @@ public class Constants {
 
     public static final String PROTOCOL_KEY = "protocol";
 
+    /**
+     * 代理方式
+     * @see com.alibaba.dubbo.rpc.ProxyFactory
+     * <dubbo:service proxy=''/>中配置 可选jdk/javassist
+     */
     public static final String PROXY_KEY = "proxy";
 
     public static final String WEIGHT_KEY = "weight";
@@ -209,6 +247,10 @@ public class Constants {
 
     public static final String THREADPOOL_KEY = "threadpool";
 
+    /**
+     * 线程名字
+     * URL中的key
+     */
     public static final String THREAD_NAME_KEY = "threadname";
 
     public static final String IO_THREADS_KEY = "iothreads";
@@ -283,10 +325,18 @@ public class Constants {
 
     public static final String RETURN_KEY = "return";
 
+    /**
+     * token key
+     * value:令牌验证，为空表示不开启，如果为true，表示随机生成动态令牌，否则使用静态令牌，
+     * 令牌的作用是防止消费者绕过注册中心直接访问，保证注册中心的授权功能有效，如果使用点对点调用，需关闭令牌功能
+     */
     public static final String TOKEN_KEY = "token";
 
     public static final String METHOD_KEY = "method";
 
+    /**
+     * 提供者方法列表 key
+     */
     public static final String METHODS_KEY = "methods";
 
     public static final String CHARSET_KEY = "charset";
@@ -301,16 +351,31 @@ public class Constants {
 
     public static final int DEFAULT_SHUTDOWN_TIMEOUT = 1000 * 60 * 15;
 
+    /**
+     * 进程id key
+     */
     public static final String PID_KEY = "pid";
 
+    /**
+     * 当前时间戳
+     */
     public static final String TIMESTAMP_KEY = "timestamp";
 
+    /**
+     * 消费者启动时，url设置此参数标识对应的服务提供者的启动时间
+     * @see com.alibaba.dubbo.rpc.cluster.support.ClusterUtils#mergeUrl(com.alibaba.dubbo.common.URL, java.util.Map)
+     */
     public static final String REMOTE_TIMESTAMP_KEY = "remote.timestamp";
 
     public static final String WARMUP_KEY = "warmup";
 
     public static final int DEFAULT_WARMUP = 10 * 60 * 1000;
 
+    /**
+     * 是否检测向注册中心注册失败的情况
+     * true-表示是，当消费者或者提供者向注册中心注册失败时，将抛出异常，及应用启动失败，
+     * @see com.alibaba.dubbo.registry.support.FailbackRegistry#register(com.alibaba.dubbo.common.URL)
+     */
     public static final String CHECK_KEY = "check";
 
     public static final String REGISTER_KEY = "register";
@@ -323,6 +388,9 @@ public class Constants {
 
     public static final String INTERFACE_KEY = "interface";
 
+    /**
+     * 泛化调用方式key
+     */
     public static final String GENERIC_KEY = "generic";
 
     public static final String FILE_KEY = "file";
@@ -333,10 +401,27 @@ public class Constants {
 
     public static final String CLASSIFIER_KEY = "classifier";
 
+    /**
+     * dubbo 提供者版本号 key
+     * 例如 1.1.1-SNAPSHOT
+     */
     public static final String VERSION_KEY = "version";
 
+    /**
+     * 根据dubbo 提供者版本号 校订而来
+     *
+     * @see com.alibaba.dubbo.config.ServiceConfig#doExportUrlsFor1Protocol(com.alibaba.dubbo.config.ProtocolConfig, java.util.List)
+     * @see com.alibaba.dubbo.config.ReferenceConfig#init()
+     * @see Version#getVersion(java.lang.Class, java.lang.String)
+     * 中用魔数赋值，但是因此这里看没用使用方
+     */
     public static final String REVISION_KEY = "revision";
 
+    /**
+     * dubbo协议版本号
+     * value
+     * @see Version#DEFAULT_DUBBO_PROTOCOL_VERSION
+     */
     public static final String DUBBO_VERSION_KEY = "dubbo";
 
     public static final String HESSIAN_VERSION_KEY = "hessian.version";
@@ -479,6 +564,13 @@ public class Constants {
 
     /**
      * The key name for export URL in register center
+     * @see com.alibaba.dubbo.config.ServiceConfig#doExportUrlsFor1Protocol(com.alibaba.dubbo.config.ProtocolConfig, java.util.List)
+     * 注册中心 URL 中的key
+     * value 对应提供者URL信息
+     * 经过 url.toFullString()
+     * 再经过下面方法添加至注册中心 URL 的params中
+     * @see com.alibaba.dubbo.common.URL#addParameterAndEncoded(java.lang.String, java.lang.String)
+     *
      */
     public static final String EXPORT_KEY = "export";
 
@@ -569,6 +661,10 @@ public class Constants {
      */
     public static final String INVOCATION_NEED_MOCK = "invocation.need.mock";
 
+    /**
+     * 提供者本地暴露 时的协议
+     * 或者消费组本地引用时的协议
+     */
     public static final String LOCAL_PROTOCOL = "injvm";
 
     public static final String AUTO_ATTACH_INVOCATIONID_KEY = "invocationid.autoattach";
@@ -599,10 +695,19 @@ public class Constants {
 
     public static final String EXECUTOR_SERVICE_COMPONENT_KEY = ExecutorService.class.getName();
 
+    /**
+     * 返回调用方式 nativejava
+     */
     public static final String GENERIC_SERIALIZATION_NATIVE_JAVA = "nativejava";
 
+    /**
+     * 返回调用方式 true
+     */
     public static final String GENERIC_SERIALIZATION_DEFAULT = "true";
 
+    /**
+     * 返回调用方式 bean
+     */
     public static final String GENERIC_SERIALIZATION_BEAN = "bean";
 
     public static final String DUBBO_IP_TO_REGISTRY = "DUBBO_IP_TO_REGISTRY";
@@ -613,8 +718,15 @@ public class Constants {
 
     public static final String DUBBO_PORT_TO_BIND = "DUBBO_PORT_TO_BIND";
 
+    /**
+     * 提供者ip
+     * @see com.alibaba.dubbo.config.ServiceConfig#findConfigedHosts(com.alibaba.dubbo.config.ProtocolConfig, java.util.List, java.util.Map)
+     */
     public static final String BIND_IP_KEY = "bind.ip";
 
+    /**
+     * 提供者port
+     */
     public static final String BIND_PORT_KEY = "bind.port";
 
     public static final String REGISTER_IP_KEY = "register.ip";

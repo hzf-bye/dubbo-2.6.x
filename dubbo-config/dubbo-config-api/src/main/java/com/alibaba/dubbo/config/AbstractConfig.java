@@ -104,7 +104,7 @@ public abstract class AbstractConfig implements Serializable {
             return;
         }
         //比如此时config是ProviderConfig
-        //getTagName返回值为provider
+        //getTagName返回值为provider，此时前缀就是dubbo.provider
         String prefix = "dubbo." + getTagName(config.getClass()) + ".";
         Method[] methods = config.getClass().getMethods();
         //获取所有方法

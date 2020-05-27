@@ -64,7 +64,8 @@ public class HessianProtocol extends AbstractProxyProtocol {
     }
 
     @Override
-    public int getDefaultPort() {
+    public int
+    getDefaultPort() {
         return 80;
     }
 

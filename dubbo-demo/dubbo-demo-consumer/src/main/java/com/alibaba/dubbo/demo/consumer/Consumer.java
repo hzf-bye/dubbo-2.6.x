@@ -17,8 +17,11 @@
 package com.alibaba.dubbo.demo.consumer;
 
 import com.alibaba.dubbo.demo.DemoService;
+import com.alibaba.dubbo.demo.HzfService;
+import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
 import com.alibaba.dubbo.remoting.exchange.ResponseFuture;
 import com.alibaba.dubbo.rpc.RpcContext;
+import com.alibaba.dubbo.rpc.protocol.dubbo.FutureAdapter;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.util.concurrent.Future;
@@ -33,12 +36,30 @@ public class Consumer {
         System.setProperty("dubbo.registry.retry.period", "111111");
         ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[]{"META-INF/spring/dubbo-demo-consumer.xml"});
         context.start();
+        RpcContext.getContext().setAttachment("name", "manba");
         DemoService demoService = (DemoService) context.getBean("demoService"); // get remote service proxy
-        String hello = demoService.sayHello("world"); // call remote method
-        System.out.println("say hello" + hello);
-        Future<String> future = RpcContext.getContext().getFuture();
-        String result = future.get(2, TimeUnit.SECONDS);
-        System.out.println(System.in.read());
+
+        System.out.println(demoService.sayHello("manba"));
+        ((FutureAdapter)RpcContext.getContext().getFuture()).getFuture().setCallback(new ResponseCallback() {
+
+            @Override
+            public void done(Object response) {
+                System.out.println("result:" + response);
+            }
+
+            @Override
+            public void caught(Throwable exception) {
+                System.out.println("exception:" + exception.getMessage());
+            }
+        });
+//        String hello = demoService.sayHello("world"); // call remote method
+//        System.out.println("say hello" + hello);
+//        Future<String> future = RpcContext.getContext().getFuture();
+//
+//        HzfService hzfService = (HzfService) context.getBean("hzfService"); // get remote service proxy
+//        String result1 = hzfService.hello("mamba"); // call remote method
+//        System.out.println(result1);
+
 
 //        EchoService echoService = (EchoService) context.getBean("echoService");
 //

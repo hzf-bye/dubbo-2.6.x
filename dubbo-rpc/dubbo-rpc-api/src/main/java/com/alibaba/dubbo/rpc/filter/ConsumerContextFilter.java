@@ -60,7 +60,7 @@ public class ConsumerContextFilter implements Filter {
             RpcContext.getServerContext().setAttachments(result.getAttachments());
             return result;
         } finally {
-            //情况附加值
+            //清空附加值
             RpcContext.getContext().clearAttachments();
         }
     }

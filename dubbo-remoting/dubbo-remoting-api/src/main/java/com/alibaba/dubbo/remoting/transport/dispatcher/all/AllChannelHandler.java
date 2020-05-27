@@ -23,6 +23,7 @@ import com.alibaba.dubbo.remoting.ExecutionException;
 import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.exchange.Request;
 import com.alibaba.dubbo.remoting.exchange.Response;
+import com.alibaba.dubbo.remoting.transport.DecodeHandler;
 import com.alibaba.dubbo.remoting.transport.dispatcher.ChannelEventRunnable;
 import com.alibaba.dubbo.remoting.transport.dispatcher.ChannelEventRunnable.ChannelState;
 import com.alibaba.dubbo.remoting.transport.dispatcher.WrappedChannelHandler;
@@ -35,8 +36,12 @@ import java.util.concurrent.RejectedExecutionException;
  */
 public class AllChannelHandler extends WrappedChannelHandler {
 
+    /**
+     *
+     * @param handler {@link DecodeHandler}
+     * @param url 提供者URL
+     */
     public AllChannelHandler(ChannelHandler handler, URL url) {
-        //DecodeHandler
         super(handler, url);
     }
 
@@ -44,7 +49,7 @@ public class AllChannelHandler extends WrappedChannelHandler {
     public void connected(Channel channel) throws RemotingException {
         ExecutorService cexecutor = getExecutorService();
         try {
-            // 把连接操作分发到线程池处理
+            // 把连接操作分发到线程池处理，handler = DecodeHandler
             cexecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.CONNECTED));
         } catch (Throwable t) {
             throw new ExecutionException("connect event", channel, getClass() + " error when process connected event .", t);
@@ -70,9 +75,9 @@ public class AllChannelHandler extends WrappedChannelHandler {
             cexecutor.execute(new ChannelEventRunnable(channel, handler, ChannelState.RECEIVED, message));
         } catch (Throwable t) {
             //TODO A temporary solution to the problem that the exception information can not be sent to the opposite end after the thread pool is full. Need a refactoring
+            // 临时解决线程池满后溢出信息无法发送到对端的问题，待重构。
             //fix The thread pool is full, refuses to call, does not return, and causes the consumer to wait for time out
-            // 这里处理线程池满的问题，只有在请求时候会出现。
-            // 程池已满，拒绝调用，不返回，并导致使用者等待超时
+            // fix 线程池满了拒绝调用不返回，导致消费者一直等待超时
             // 所以这里直接返回该错误，以至于不会等待超时
         	if(message instanceof Request && t instanceof RejectedExecutionException){
         		Request request = (Request)message;

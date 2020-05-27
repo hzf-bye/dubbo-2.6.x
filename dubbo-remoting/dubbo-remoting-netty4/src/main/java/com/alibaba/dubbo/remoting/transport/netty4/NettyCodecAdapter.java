@@ -47,6 +47,8 @@ final class NettyCodecAdapter {
 
     /**
      * 编解码器
+     * 默认
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboCountCodec
      */
     private final Codec2 codec;
 
@@ -110,17 +112,18 @@ final class NettyCodecAdapter {
             int saveReaderIndex;
 
             try {
+                //具体解析二进制位dubbo协议对象
                 // decode object.
                 do {
-                    // 记录读索引
+                    // 保存缓存的当前读取下标
                     saveReaderIndex = message.readerIndex();
                     try {
-                        // 解码
+                        // 解析二进制数据为对象
                         msg = codec.decode(channel, message);
                     } catch (IOException e) {
                         throw e;
                     }
-                    // 拆包
+                    // 如果返回NEED_MORE_INPUT，说明遇到了半包，重置缓存的读取下标
                     if (msg == Codec2.DecodeResult.NEED_MORE_INPUT) {
                         message.readerIndex(saveReaderIndex);
                         break;
@@ -129,7 +132,7 @@ final class NettyCodecAdapter {
                         if (saveReaderIndex == message.readerIndex()) {
                             throw new IOException("Decode without read data.");
                         }
-                        // 读取数据
+                        // 把解码成功的对象放入out列表，继续向后传播
                         if (msg != null) {
                             out.add(msg);
                         }

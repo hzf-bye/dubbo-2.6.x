@@ -31,6 +31,7 @@ import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcException;
 import com.alibaba.dubbo.rpc.cluster.Directory;
 import com.alibaba.dubbo.rpc.cluster.LoadBalance;
+import com.alibaba.dubbo.rpc.cluster.directory.StaticDirectory;
 import com.alibaba.dubbo.rpc.support.RpcUtils;
 
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
             .getLogger(AbstractClusterInvoker.class);
 
     /**
-     * RegistryDirectory实例
+     * RegistryDirectory实例或者StaticDirectory
      * 目录，包含多个invoker
      */
     protected final Directory<T> directory;
@@ -69,6 +70,11 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
      */
     private volatile Invoker<T> stickyInvoker = null;
 
+    /**
+     *
+     * 1. {@link com.alibaba.dubbo.config.ReferenceConfig#createProxy(java.util.Map)}
+     * 当使用多注册中心时directory为 {@link StaticDirectory}
+     */
     public AbstractClusterInvoker(Directory<T> directory) {
         this(directory, directory.getUrl());
     }

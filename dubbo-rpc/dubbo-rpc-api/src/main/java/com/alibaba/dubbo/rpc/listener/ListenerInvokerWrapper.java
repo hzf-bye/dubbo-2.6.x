@@ -24,6 +24,7 @@ import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.InvokerListener;
 import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcException;
+import com.alibaba.dubbo.rpc.protocol.ProtocolFilterWrapper;
 
 import java.util.List;
 
@@ -34,6 +35,12 @@ public class ListenerInvokerWrapper<T> implements Invoker<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(ListenerInvokerWrapper.class);
 
+    /**
+     * 这里的invoke是一个invoke链，责任链模式
+     * @see ProtocolFilterWrapper#buildInvokerChain(com.alibaba.dubbo.rpc.Invoker, java.lang.String, java.lang.String)
+     * 将符合条件的filter串成一个链，最后一个invoke才是DubboInvoker
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboInvoker
+     */
     private final Invoker<T> invoker;
 
     private final List<InvokerListener> listeners;

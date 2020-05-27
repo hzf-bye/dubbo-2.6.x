@@ -59,16 +59,16 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
 
     @Override
     protected Object decodeBody(Channel channel, InputStream is, byte[] header) throws IOException {
-        //获取报文头的第19-23位即获取序列化方式
+        //获取报文头的第16-20位即获取序列化方式
         byte flag = header[2], proto = (byte) (flag & SERIALIZATION_MASK);
         // get request id.
         // 获得请求id
         long id = Bytes.bytes2long(header, 4);
-        // 如果第16位为0，则说明是响应
+        // 如果第23位为0，则说明是响应
         if ((flag & FLAG_REQUEST) == 0) {
             // decode response.
             Response res = new Response(id);
-            // 如果第18位不是0，则说明是心跳事件
+            // 如果第21位不是0，则说明是心跳事件
             if ((flag & FLAG_EVENT) != 0) {
                 res.setEvent(Response.HEARTBEAT_EVENT);
             }
@@ -92,7 +92,13 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
                         if (channel.getUrl().getParameter(
                                 Constants.DECODE_IN_IO_THREAD_KEY,
                                 Constants.DEFAULT_DECODE_IN_IO_THREAD)) {
-                            //在I/O线程中直接解码
+                            /**
+                             * 在I/O线程中直接解码，解码后hasDecoded = true
+                             * 那么之后的
+                             * @see com.alibaba.dubbo.remoting.transport.DecodeHandler.decode
+                             * 中再次解码时就不会再次解码
+                             *
+                             */
                             result = new DecodeableRpcResult(channel, res, is,
                                     (Invocation) getRequestData(id), proto);
                             result.decode();
@@ -122,9 +128,9 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
             Request req = new Request(id);
             // 设置版本号
             req.setVersion(Version.getProtocolVersion());
-            // 如果第17位不为0，则是双向调动，即需要响应
+            // 如果第22位不为0，则是双向调动，即需要响应
             req.setTwoWay((flag & FLAG_TWOWAY) != 0);
-            // 如果18位不为0，则是心跳事件
+            // 如果21位不为0，则是心跳事件
             if ((flag & FLAG_EVENT) != 0) {
                 req.setEvent(Request.HEARTBEAT_EVENT);
             }
@@ -142,7 +148,13 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
                     if (channel.getUrl().getParameter(
                             Constants.DECODE_IN_IO_THREAD_KEY,
                             Constants.DEFAULT_DECODE_IN_IO_THREAD)) {
-                        //在I/O线程中直接解码
+                        /**
+                         * 在I/O线程中直接解码，解码后hasDecoded = true
+                         * 那么之后的
+                         * @see com.alibaba.dubbo.remoting.transport.DecodeHandler.decode
+                         * 中再次解码时就不会再次解码
+                         *
+                         */
                         inv = new DecodeableRpcInvocation(channel, req, is, proto);
                         inv.decode();
                     } else {

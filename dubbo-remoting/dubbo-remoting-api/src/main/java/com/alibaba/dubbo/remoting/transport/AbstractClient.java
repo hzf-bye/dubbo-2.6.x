@@ -86,11 +86,14 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
     // reconnect warning period. Reconnect warning interval (log warning after how many times) //for test
     /**
      * 重连 warning 的间隔.(waring多少次之后，warning一次)，也就是错误多少次后告警一次错误
+     * 默认值1800
+     * 因为2s重连一次，所以当出错的时候，每隔1800*2=3600s报警一次
+     * @see AbstractClient#initConnectStatusCheckCommand()
      */
     private final int reconnect_warning_period;
 
     /**
-     * 关闭超时时间
+     * 关闭超时时间，默认900s
      */
     private final long shutdown_timeout;
 
@@ -111,6 +114,12 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
     private long lastConnectedTime = System.currentTimeMillis();
 
 
+    /**
+     *
+     * @param url url 消费者消费的提供者URL
+     * @param handler {@link MultiMessageHandler}
+     * @throws RemotingException
+     */
     public AbstractClient(URL url, ChannelHandler handler) throws RemotingException {
         //handler为MultiMessageHandler实例
         super(url, handler);
@@ -165,12 +174,16 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
                 .getDefaultExtension().remove(Constants.CONSUMER_SIDE, Integer.toString(url.getPort()));
     }
 
+    /**
+     * @param url 消费者消费的提供者URL
+     * @param handler {@link DecodeHandler}
+     */
     protected static ChannelHandler wrapChannelHandler(URL url, ChannelHandler handler) {
         // 加入线程名称
         url = ExecutorUtil.setThreadName(url, CLIENT_THREAD_POOL_NAME);
         // 设置使用的线程池类型
         url = url.addParameterIfAbsent(Constants.THREADPOOL_KEY, Constants.DEFAULT_CLIENT_THREADPOOL);
-        // 包
+        //
         return ChannelHandlers.wrap(handler, url);
     }
 
@@ -203,6 +216,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
      */
     private synchronized void initConnectStatusCheckCommand() {
         //reconnect=false to close reconnect
+        //获取任务执行间隔，默认2000ms执行一次
         int reconnect = getReconnectParam(getUrl());
         // 有连接频率的值，并且当前没有连接任务
         if (reconnect > 0 && (reconnectExecutorFuture == null || reconnectExecutorFuture.isCancelled())) {
@@ -210,6 +224,7 @@ public abstract class AbstractClient extends AbstractEndpoint implements Client 
                 @Override
                 public void run() {
                     try {
+                        //如果未连接则重连
                         if (!isConnected()) {
                             // 重连
                             connect();

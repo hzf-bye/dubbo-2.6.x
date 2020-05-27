@@ -20,6 +20,7 @@ import com.alibaba.dubbo.common.URL;
 import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.RpcStatus;
+import com.alibaba.dubbo.rpc.filter.ActiveLimitFilter;
 
 import java.util.List;
 import java.util.Random;
@@ -37,9 +38,9 @@ import java.util.Random;
  * 某一时刻它们的活跃数相同，此时 Dubbo 会根据它们的权重去分配请求，权重越大，获取到新请求的概率就越大。
  * 如果两个服务提供者权重相同，此时随机选择一个即可。
  *
- * 此算法因为依赖com.alibaba.dubbo.rpc.RpcStatus#active的值，
- * 而active是消费者侧的ActiveLimitFilter中赋值的，而要此过滤器生效就要在配置文件中配置actives参数
- * 否则获取到的所有提供者的活跃数都为0，那么其实就使用的是 RandomLoadBalance 算法了。
+ * 此算法因为依赖{@link com.alibaba.dubbo.rpc.RpcStatus#active}的值，
+ * 而active是消费者侧的{@link ActiveLimitFilter}中赋值的，而要此过滤器生效就要在URL中配置actives参数，否则ActiveLimitFilter过滤器不执行
+ * 那么获取到的所有提供者的活跃数都为0，那么其实就使用的是 RandomLoadBalance 算法了。
  *
  */
 public class LeastActiveLoadBalance extends AbstractLoadBalance {
@@ -57,9 +58,9 @@ public class LeastActiveLoadBalance extends AbstractLoadBalance {
      */
     @Override
     protected <T> Invoker<T> doSelect(List<Invoker<T>> invokers, URL url, Invocation invocation) {
-        // 获得服务长度
+        // 获得服务提供者个数
         int length = invokers.size();
-        // 最小的活跃数
+        // 最小的活跃数，用来暂存被调用的最少的次数
         int leastActive = -1;
         // 具有相同“最小活跃数”的服务者提供者（以下用 Invoker 代称）数量
         int leastCount = 0;

@@ -41,6 +41,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * 因此，这个时候我们需要对轮询过程进行加权，以调控每台服务器的负载。
  * 经过加权后，每台服务器能够得到的请求数比例，接近或等于他们的权重比。比如服务器 A、B、C 权重比为 5:2:1。
  * 那么在8次请求中，服务器 A 将收到其中的5次请求，服务器 B 会收到其中的2次请求，服务器 C 则收到其中的1次请求。
+ *
+ * 例子说明参考文档
+ * http://dubbo.apache.org/zh-cn/docs/source_code_guide/loadbalance.html
  * 
  * Smoothly round robin's implementation @since 2.6.5 
  */
@@ -148,7 +151,7 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
         }
         // 权重总和
         int totalWeight = 0;
-        // 最小权重
+        // 最大权重
         long maxCurrent = Long.MIN_VALUE;
         // 获得现在的时间戳
         long now = System.currentTimeMillis();

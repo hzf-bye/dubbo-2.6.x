@@ -19,7 +19,9 @@ package com.alibaba.dubbo.config;
 import com.alibaba.dubbo.common.Constants;
 import com.alibaba.dubbo.common.URL;
 import com.alibaba.dubbo.common.Version;
+import com.alibaba.dubbo.common.bytecode.DemoService;
 import com.alibaba.dubbo.common.bytecode.Wrapper;
+import com.alibaba.dubbo.common.bytecode.proxy0;
 import com.alibaba.dubbo.common.extension.ExtensionLoader;
 import com.alibaba.dubbo.common.utils.ConfigUtils;
 import com.alibaba.dubbo.common.utils.NetUtils;
@@ -35,8 +37,11 @@ import com.alibaba.dubbo.rpc.ProxyFactory;
 import com.alibaba.dubbo.rpc.StaticContext;
 import com.alibaba.dubbo.rpc.cluster.Cluster;
 import com.alibaba.dubbo.rpc.cluster.directory.StaticDirectory;
+import com.alibaba.dubbo.rpc.cluster.support.AbstractClusterInvoker;
 import com.alibaba.dubbo.rpc.cluster.support.AvailableCluster;
 import com.alibaba.dubbo.rpc.cluster.support.ClusterUtils;
+import com.alibaba.dubbo.rpc.cluster.support.FailoverClusterInvoker;
+import com.alibaba.dubbo.rpc.cluster.support.wrapper.MockClusterInvoker;
 import com.alibaba.dubbo.rpc.protocol.injvm.InjvmProtocol;
 import com.alibaba.dubbo.rpc.service.GenericService;
 import com.alibaba.dubbo.rpc.support.ProtocolUtils;
@@ -78,15 +83,27 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
     private static final Cluster cluster = ExtensionLoader.getExtensionLoader(Cluster.class).getAdaptiveExtension();
 
     private static final ProxyFactory proxyFactory = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
+    /**
+     * 注册中心URL集合
+     * 或者直连提供者的情况下的提供者URL
+     */
     private final List<URL> urls = new ArrayList<URL>();
     // interface name
+    /**
+     * 提供者接口
+     * 对应 dubbo:reference标签中的 interface属性
+     */
     private String interfaceName;
+    /**
+     * interfaceName对应的class对象
+     */
     private Class<?> interfaceClass;
     // client type
     private String client;
     // url for peer-to-peer invocation
     /**
-     * 点对点直连服务提供者地址，将绕过注册中心
+     * 点对点直连服务提供者地址，
+     * 不空将绕过注册中心，直连提供者
      */
     private String url;
     // method configs
@@ -95,7 +112,24 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
     private ConsumerConfig consumer;
     private String protocol;
     // interface proxy reference
+    /**
+     * 消费者消费的Bean实例
+     * @see ReferenceConfig#createProxy(java.util.Map)
+     * 以消费者消费的服务提供在中的类为{@link DemoService} 为例
+     * 最终ref为proxy0
+     * @see proxy0
+     */
     private transient volatile T ref;
+    /**
+     * 消费者消费的服务对应的 Invoker 对象
+     * @see ReferenceConfig#createProxy(java.util.Map)
+     *
+     * 1. 如果是单注册中心，或者直连单个服务提供者
+     * 那么 invoker 为 {@link MockClusterInvoker}
+     * 2. 如果是多注册中心，或者直连多个服务提供者，或者二者并存
+     *   2.1 如果存在注册中心，那么invoker 为 {@link AbstractClusterInvoker#AbstractClusterInvoker(com.alibaba.dubbo.rpc.cluster.Directory)}
+     *   2.2 直连的情况下 invoker 为 {@link MockClusterInvoker}
+     */
     private transient volatile Invoker<?> invoker;
     private transient volatile boolean initialized;
     private transient volatile boolean destroyed;
@@ -312,6 +346,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         checkApplication();
         // 检测本地存根配置合法性
         checkStub(interfaceClass);
+        //检查设置的mock的正确性
         checkMock(interfaceClass);
         Map<String, String> map = new HashMap<String, String>();
         Map<Object, Object> attributes = new HashMap<Object, Object>();
@@ -485,7 +520,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
 
             // 单个注册中心或服务提供者(服务直连，下同)
             if (urls.size() == 1) {
-                // 调用 RegistryProtocol 的 refer 构建 Invoker 实例
+                // 调用 RegistryProtocol 的 refer 构建 MockClusterInvoker 实例
                 invoker = refprotocol.refer(interfaceClass, urls.get(0));
             } else {
                 // 多个注册中心或多个服务提供者，或者两者混合
@@ -495,7 +530,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 for (URL url : urls) {
                     // 通过 refprotocol 调用 refer 构建 Invoker，refprotocol 会在运行时
                     // 根据 url 协议头加载指定的 Protocol 实例，并调用实例的 refer 方法
-                    // 把生成的Invoker加入到集合中
+                    // 把生成的MockClusterInvoker加入到集合中
                     invokers.add(refprotocol.refer(interfaceClass, url));
                     // 如果是注册中心的协议
                     if (Constants.REGISTRY_PROTOCOL.equals(url.getProtocol())) {

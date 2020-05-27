@@ -23,10 +23,12 @@ import com.alibaba.dubbo.common.logger.Logger;
 import com.alibaba.dubbo.common.logger.LoggerFactory;
 import com.alibaba.dubbo.common.store.DataStore;
 import com.alibaba.dubbo.common.threadpool.ThreadPool;
+import com.alibaba.dubbo.common.threadpool.support.fixed.FixedThreadPool;
 import com.alibaba.dubbo.common.utils.NamedThreadFactory;
 import com.alibaba.dubbo.remoting.Channel;
 import com.alibaba.dubbo.remoting.ChannelHandler;
 import com.alibaba.dubbo.remoting.RemotingException;
+import com.alibaba.dubbo.remoting.transport.AbstractClient;
 import com.alibaba.dubbo.remoting.transport.ChannelHandlerDelegate;
 
 import java.util.concurrent.ExecutorService;
@@ -44,6 +46,10 @@ public class WrappedChannelHandler implements ChannelHandlerDelegate {
 
     protected static final ExecutorService SHARED_EXECUTOR = Executors.newCachedThreadPool(new NamedThreadFactory("DubboSharedHandler", true));
 
+    /**
+     * 默认
+     * @see FixedThreadPool
+     */
     protected final ExecutorService executor;
 
     protected final ChannelHandler handler;
@@ -53,7 +59,15 @@ public class WrappedChannelHandler implements ChannelHandlerDelegate {
     public WrappedChannelHandler(ChannelHandler handler, URL url) {
         this.handler = handler;
         this.url = url;
-        // 创建线程池
+        // 创建线程池，提供者默认为FixedThreadPool，消费者默认为com.alibaba.dubbo.common.threadpool.support.cached.CachedThreadPool
+        /**
+         * 创建线程池
+         * 1. 提供者默认为{@link com.alibaba.dubbo.common.threadpool.support.fixed.FixedThreadPool}
+         * 提供者URL参数中默认无threadpool，
+         * 2. 消费者默认为 {@link com.alibaba.dubbo.common.threadpool.support.cached.CachedThreadPool}
+         *  {@link AbstractClient#wrapChannelHandler(com.alibaba.dubbo.common.URL, com.alibaba.dubbo.remoting.ChannelHandler)}
+         *  在此赋值
+         */
         executor = (ExecutorService) ExtensionLoader.getExtensionLoader(ThreadPool.class).getAdaptiveExtension().getExecutor(url);
 
         // 设置组件的key

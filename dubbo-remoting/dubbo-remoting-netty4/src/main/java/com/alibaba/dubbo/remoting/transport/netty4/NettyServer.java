@@ -27,6 +27,7 @@ import com.alibaba.dubbo.remoting.ChannelHandler;
 import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.Server;
 import com.alibaba.dubbo.remoting.transport.AbstractServer;
+import com.alibaba.dubbo.remoting.transport.DecodeHandler;
 import com.alibaba.dubbo.remoting.transport.dispatcher.ChannelHandlers;
 
 import io.netty.bootstrap.ServerBootstrap;
@@ -77,6 +78,12 @@ public class NettyServer extends AbstractServer implements Server {
      */
     private EventLoopGroup workerGroup;
 
+    /**
+     *
+     * @param url 提供者URL
+     * @param handler {@link DecodeHandler}
+     * @throws RemotingException
+     */
     public NettyServer(URL url, ChannelHandler handler) throws RemotingException {
         // 调用父类构造方法
         /*

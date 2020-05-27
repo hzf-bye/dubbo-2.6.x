@@ -193,7 +193,7 @@ public class ConditionRouter extends AbstractRouter {
     public static void main(String[] args) {
 
         try {
-            Map<String, MatchPair> matchPairMap = parseRule("host = 10.20.153.10,10.20.153.11 & application = mamba & method = find*,list*,get*,is*");
+            Map<String, MatchPair> matchPairMap = parseRule("host != 10.20.153.10,10.20.153.11 & application = mamba & method = find*,list*,get*,is*");
             System.out.println();
         } catch (ParseException e) {
             e.printStackTrace();

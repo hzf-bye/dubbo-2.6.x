@@ -27,11 +27,15 @@ public class Request {
 
     /**
      * 心跳事件
+     * @see Request#mEvent 为true时
+     * @see Request#mData 为null表示心跳事件
      */
     public static final String HEARTBEAT_EVENT = null;
 
     /**
      * 只读事件
+     * @see Request#mEvent 为true时
+     * @see Request#mData 为 R 表示心跳事件
      */
     public static final String READONLY_EVENT = "R";
 

@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class RpcStatus {
 
-    /**
+    /**RpcStatus
      * key 提供者url.toIdentityString()
      * value 是RpcStatus实例
      * 缓存的就是 每个提供者对应的RpcStatus信息
@@ -60,10 +60,11 @@ public class RpcStatus {
      */
     private static final ConcurrentMap<String, ConcurrentMap<String, RpcStatus>> METHOD_STATISTICS = new ConcurrentHashMap<String, ConcurrentMap<String, RpcStatus>>();
     private final ConcurrentMap<String, Object> values = new ConcurrentHashMap<String, Object>();
-    /** 活跃数量
+    /**
+     * 活跃数量
      * 即当前消费者并行消费此服务的的数量
-     * com.alibaba.dubbo.rpc.filter.ActiveLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
-     * com.alibaba.dubbo.rpc.filter.ExecuteLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * @see com.alibaba.dubbo.rpc.filter.ActiveLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * @see com.alibaba.dubbo.rpc.filter.ExecuteLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
      * 此过滤器中赋值当有一个请求来时 +1
      * 当请求完成后此值 -1
      */
@@ -71,8 +72,9 @@ public class RpcStatus {
 
     /**
      * 此服务总的消费次数
-     * com.alibaba.dubbo.rpc.filter.ActiveLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
-     * com.alibaba.dubbo.rpc.filter.ExecuteLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * @see RpcStatus#endCount(com.alibaba.dubbo.rpc.RpcStatus, long, boolean)
+     * @see com.alibaba.dubbo.rpc.filter.ActiveLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
+     * @see com.alibaba.dubbo.rpc.filter.ExecuteLimitFilter#invoke(com.alibaba.dubbo.rpc.Invoker, com.alibaba.dubbo.rpc.Invocation)
      * 赋值
      */
     private final AtomicLong total = new AtomicLong();
@@ -146,9 +148,7 @@ public class RpcStatus {
     }
 
     /**
-     * @param url
-     * @param methodName
-     * @return status
+     * 获取方法对应的RpcStatus
      */
     public static RpcStatus getStatus(URL url, String methodName) {
         String uri = url.toIdentityString();
@@ -178,8 +178,7 @@ public class RpcStatus {
 
     /**
      * @param url
-     * 提供者对应的活跃数+1
-     * 以及提供者+调用方法UI应的活跃数+1
+     * 递增方法对应的激活并发数
      */
     public static void beginCount(URL url, String methodName) {
         beginCount(getStatus(url));
@@ -191,6 +190,7 @@ public class RpcStatus {
     }
 
     /**
+     * 原子性的递减方法对应的激活并发数
      * @param url
      * @param elapsed
      * @param succeeded

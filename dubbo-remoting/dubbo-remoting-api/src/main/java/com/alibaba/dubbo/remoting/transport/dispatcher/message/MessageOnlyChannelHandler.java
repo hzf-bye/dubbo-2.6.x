@@ -28,8 +28,8 @@ import com.alibaba.dubbo.remoting.transport.dispatcher.WrappedChannelHandler;
 import java.util.concurrent.ExecutorService;
 
 /**
- * 该类也是继承了WrappedChannelHandler，是WrappedChannelHandler的最后一个子类，也是增强功能，
- * 不过该类只是处理了所有接收到的消息分发到线程池。
+ * 该类也是继承了WrappedChannelHandler，是WrappedChannelHandler的一个子类，也是增强功能，
+ * 不过该类只是处理了请求响应消息派发到业务线程池，其他耗时比较短的连接事件、断开事件、心跳事件则直接在IO线程上执行
  */
 public class MessageOnlyChannelHandler extends WrappedChannelHandler {
 

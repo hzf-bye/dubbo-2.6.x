@@ -31,6 +31,7 @@ public class EagerThreadPoolExecutor extends ThreadPoolExecutor {
 
     /**
      * task count
+     * 已提交的任务数量
      */
     private final AtomicInteger submittedTaskCount = new AtomicInteger(0);
 

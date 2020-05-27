@@ -19,6 +19,7 @@ package com.alibaba.dubbo.rpc.protocol.dubbo;
 import com.alibaba.dubbo.rpc.Exporter;
 import com.alibaba.dubbo.rpc.Invoker;
 import com.alibaba.dubbo.rpc.protocol.AbstractExporter;
+import com.alibaba.dubbo.rpc.protocol.AbstractProtocol;
 
 import java.util.Map;
 
@@ -31,6 +32,12 @@ public class DubboExporter<T> extends AbstractExporter<T> {
 
     private final Map<String, Exporter<?>> exporterMap;
 
+    /**
+     *
+     * @param invoker {@link com.alibaba.dubbo.registry.integration.RegistryProtocol.InvokerDelegete}实例
+     * @param key {@link AbstractProtocol#serviceKey(com.alibaba.dubbo.common.URL)}
+     * @param exporterMap {@link AbstractProtocol#exporterMap}
+     */
     public DubboExporter(Invoker<T> invoker, String key, Map<String, Exporter<?>> exporterMap) {
         super(invoker);
         this.key = key;

@@ -22,17 +22,28 @@ import com.alibaba.dubbo.remoting.Client;
 import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.Server;
 import com.alibaba.dubbo.remoting.Transporter;
+import com.alibaba.dubbo.remoting.transport.DecodeHandler;
 
 public class NettyTransporter implements Transporter {
 
     public static final String NAME = "netty";
 
+    /**
+     *
+     * @param url     server url 提供者URL
+     * @param listener {@link DecodeHandler#DecodeHandler(com.alibaba.dubbo.remoting.ChannelHandler)}
+     */
     @Override
     public Server bind(URL url, ChannelHandler listener) throws RemotingException {
         // 创建 NettyServer
         return new NettyServer(url, listener);
     }
 
+    /**
+     *
+     * @param url     server url 提供者URL
+     * @param listener {@link DecodeHandler#DecodeHandler(com.alibaba.dubbo.remoting.ChannelHandler)}
+     */
     @Override
     public Client connect(URL url, ChannelHandler listener) throws RemotingException {
         //listener为DecodeHandler

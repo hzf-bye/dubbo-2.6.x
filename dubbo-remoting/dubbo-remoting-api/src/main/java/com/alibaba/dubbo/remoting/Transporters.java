@@ -60,6 +60,10 @@ public class Transporters {
         }
         // 获取自适应 Transporter 实例，并调用实例方法
         // 默认是NettyTransporter的bind方法）
+        /**
+         * dubbo/remoting/dubbo/remoting-netty4/META-INF/dubbo/internal/com.alibaba.dubbo.remoting.Transporter
+         * 获取到的NettyTransporter是netty4包下的
+         */
         return getTransporter().bind(url, handler);
     }
 

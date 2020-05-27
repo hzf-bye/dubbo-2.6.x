@@ -19,6 +19,7 @@ package com.alibaba.dubbo.rpc.protocol.dubbo;
 import com.alibaba.dubbo.common.utils.StringUtils;
 import com.alibaba.dubbo.remoting.RemotingException;
 import com.alibaba.dubbo.remoting.exchange.ResponseFuture;
+import com.alibaba.dubbo.remoting.exchange.support.DefaultFuture;
 import com.alibaba.dubbo.rpc.Result;
 import com.alibaba.dubbo.rpc.RpcException;
 
@@ -34,6 +35,9 @@ public class FutureAdapter<V> implements Future<V> {
 
     private final ResponseFuture future;
 
+    /**
+     * @param future {@link DefaultFuture}
+     */
     public FutureAdapter(ResponseFuture future) {
         this.future = future;
     }

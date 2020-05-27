@@ -34,6 +34,9 @@ import com.alibaba.dubbo.remoting.exchange.ExchangeHandler;
 import com.alibaba.dubbo.remoting.exchange.ExchangeServer;
 import com.alibaba.dubbo.remoting.exchange.Exchangers;
 import com.alibaba.dubbo.remoting.exchange.support.ExchangeHandlerAdapter;
+import com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchangeClient;
+import com.alibaba.dubbo.remoting.exchange.support.header.HeaderExchangeServer;
+import com.alibaba.dubbo.remoting.transport.AbstractServer;
 import com.alibaba.dubbo.rpc.Exporter;
 import com.alibaba.dubbo.rpc.Invocation;
 import com.alibaba.dubbo.rpc.Invoker;
@@ -55,18 +58,26 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * dubbo protocol support.
  */
-public class DubboProtocol extends AbstractProtocol {
+public class  DubboProtocol extends AbstractProtocol {
 
     public static final String NAME = "dubbo";
 
     public static final int DEFAULT_PORT = 20880;
     private static final String IS_CALLBACK_SERVICE_INVOKE = "_isCallBackServiceInvoke";
     private static DubboProtocol INSTANCE;
+    /**
+     * 缓存提供者的HeaderExchangeServer
+     * @see DubboProtocol#openServer(com.alibaba.dubbo.common.URL)
+     * key:ip:port
+     * value {@link HeaderExchangeServer}
+     */
     private final Map<String, ExchangeServer> serverMap = new ConcurrentHashMap<String, ExchangeServer>(); // <host:port,Exchanger>
     /**
      * 缓存客户端信息
-     * key:host:port
-     * value: HeaderExchangeClient
+     * key: 提供者 host:port
+     * value: {@link HeaderExchangeClient}
+     * @see DubboProtocol#getClients(com.alibaba.dubbo.common.URL)
+     * 创建的客户端连接 缓存在此
      */
     private final Map<String, ReferenceCountExchangeClient> referenceClientMap = new ConcurrentHashMap<String, ReferenceCountExchangeClient>(); // <host:port,Exchanger>
     private final ConcurrentMap<String, LazyConnectExchangeClient> ghostClientMap = new ConcurrentHashMap<String, LazyConnectExchangeClient>();
@@ -88,7 +99,7 @@ public class DubboProtocol extends AbstractProtocol {
         public Object reply(ExchangeChannel channel, Object message) throws RemotingException {
             if (message instanceof Invocation) {
                 Invocation inv = (Invocation) message;
-                //查找Invocation关联的Invoker
+                //查找Invocation关联的Invoker, com.alibaba.dubbo.registry.integration.RegistryProtocol.InvokerDelegete实例
                 Invoker<?> invoker = getInvoker(channel, inv);
                 // need to consider backward-compatibility if it's a callback
                 if (Boolean.TRUE.toString().equals(inv.getAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
@@ -122,6 +133,9 @@ public class DubboProtocol extends AbstractProtocol {
                     + ", channel: consumer: " + channel.getRemoteAddress() + " --> provider: " + channel.getLocalAddress());
         }
 
+        /**
+         * 接受到客户端的调用请求
+         */
         @Override
         public void received(Channel channel, Object message) throws RemotingException {
             if (message instanceof Invocation) {
@@ -131,6 +145,9 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        /**
+         * 消费端发起tcp连接并完成后，服务端此方法被调用
+         */
         @Override
         public void connected(Channel channel) throws RemotingException {
             invoke(channel, Constants.ON_CONNECT_KEY);
@@ -145,6 +162,7 @@ public class DubboProtocol extends AbstractProtocol {
         }
 
         private void invoke(Channel channel, String methodKey) {
+            //创建Invocation对象
             Invocation invocation = createInvocation(channel, channel.getUrl(), methodKey);
             if (invocation != null) {
                 try {
@@ -156,10 +174,12 @@ public class DubboProtocol extends AbstractProtocol {
         }
 
         private Invocation createInvocation(Channel channel, URL url, String methodKey) {
+            //如果不包含返回null，比如消费端连接时可以调动初始化方法，或者断开连接时可以调用一些清理方法吧？
             String method = url.getParameter(methodKey);
             if (method == null || method.length() == 0) {
                 return null;
             }
+            //根据method创建RpcInvocation对象
             RpcInvocation invocation = new RpcInvocation(method, new Class<?>[0], new Object[0]);
             invocation.setAttachment(Constants.PATH_KEY, url.getPath());
             invocation.setAttachment(Constants.GROUP_KEY, url.getParameter(Constants.GROUP_KEY));
@@ -242,6 +262,11 @@ public class DubboProtocol extends AbstractProtocol {
         return DEFAULT_PORT;
     }
 
+
+    /**
+     *
+     * @param invoker Service invoker {@link com.alibaba.dubbo.registry.integration.RegistryProtocol.InvokerDelegete} 实例
+     */
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         //dubbo://10.42.0.1:20880/dubbo.common.hello.service.HelloService?
@@ -306,6 +331,7 @@ public class DubboProtocol extends AbstractProtocol {
         String key = url.getAddress();
         //client can export a service which's only for server to invoke
         //client 也可以暴露一个只有server可以调用的服务。
+        //只有服务提供端才会启动监听
         boolean isServer = url.getParameter(Constants.IS_SERVER_KEY, true);
         if (isServer) {
             //同一JVM中，同协议的服务，共享同一个Server，
@@ -316,10 +342,13 @@ public class DubboProtocol extends AbstractProtocol {
                 serverMap.put(key, createServer(url));
             } else {
                 // server supports reset, use together with override
-                //同协议的服务后来暴露服务的则使用第一次创建的同一Server
-                //server支持reset,配合override功能使用
-                //accept、idleTimeout、threads、heartbeat参数的变化会引起Server的属性发生变化
-                //这时需要重新设置Server
+                /**
+                 * 同协议的服务后来暴露服务的则使用第一次创建的同一Server
+                 * server支持reset,配合override功能使用
+                 * accept、idleTimeout、threads、heartbeat参数的变化会引起Server的属性发生变化
+                 * 这时需要重新设置Server
+                 * @see AbstractServer#reset(com.alibaba.dubbo.common.URL)
+                 */
                 server.reset(url);
             }
         }
@@ -430,6 +459,7 @@ public class DubboProtocol extends AbstractProtocol {
         //是否共享连接
         boolean service_share_connect = false;
         //如果connections不配置，则共享连接，否则每服务每连接
+        //即消费端引用同一个服务提供者机器上多个服务时，这些服务复用一个netty连接。
         int connections = url.getParameter(Constants.CONNECTIONS_KEY, 0);
         // if not configured, connection is shared, otherwise, one connection for one service
         if (connections == 0) {
@@ -455,6 +485,7 @@ public class DubboProtocol extends AbstractProtocol {
      */
     private ExchangeClient getSharedClient(URL url) {
         String key = url.getAddress();
+        //先从缓存中获取，获取到了直接返回
         ReferenceCountExchangeClient client = referenceClientMap.get(key);
         if (client != null) {
             if (!client.isClosed()) {
@@ -489,6 +520,7 @@ public class DubboProtocol extends AbstractProtocol {
 
     /**
      * Create new connection
+     * @return {@link HeaderExchangeClient}
      */
     private ExchangeClient initClient(URL url) {
 
@@ -498,7 +530,7 @@ public class DubboProtocol extends AbstractProtocol {
 
         // 添加编解码和心跳包参数到 url 中
         url = url.addParameter(Constants.CODEC_KEY, DubboCodec.NAME);
-        // enable heartbeat by default
+        // enable heartbeat by default，默认60s
         url = url.addParameterIfAbsent(Constants.HEARTBEAT_KEY, String.valueOf(Constants.DEFAULT_HEARTBEAT));
 
         // BIO is not allowed since it has severe performance issue.
@@ -512,14 +544,14 @@ public class DubboProtocol extends AbstractProtocol {
         ExchangeClient client;
         try {
             // connection should be lazy
-            //如果lazy属性没有配置为true（我们没有配置，默认为false）ExchangeClient会马上和服务端建立连接
+            //如果lazy属性没有配置为true（默认为false）ExchangeClient会马上和服务端建立连接
             //设置连接应该是lazy的
             // 获取 lazy 配置，并根据配置值决定创建的客户端类型
             if (url.getParameter(Constants.LAZY_CONNECT_KEY, false)) {
                 client = new LazyConnectExchangeClient(url, requestHandler);
             } else {
                 //立即和服务端建立连接
-                // 创建普通 ExchangeClient 实例
+                // 创建普通 HeaderExchangeClient 实例
                 client = Exchangers.connect(url, requestHandler);
             }
         } catch (RemotingException e) {

@@ -43,7 +43,7 @@ public class ExecuteLimitFilter implements Filter {
         String methodName = invocation.getMethodName();
         Semaphore executesLimit = null;
         boolean acquireResult = false;
-        // 取出该接口方法的对应的计数器
+        // 取出该接口方法的对应的计数器，即允许的最大可用并发数
         int max = url.getMethodParameter(methodName, Constants.EXECUTES_KEY, 0);
         // 如果该方法设置了executes并且值大于0
         if (max > 0) {

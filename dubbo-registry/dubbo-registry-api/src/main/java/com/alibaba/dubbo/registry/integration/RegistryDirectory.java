@@ -39,6 +39,9 @@ import com.alibaba.dubbo.rpc.cluster.RouterFactory;
 import com.alibaba.dubbo.rpc.cluster.directory.AbstractDirectory;
 import com.alibaba.dubbo.rpc.cluster.directory.StaticDirectory;
 import com.alibaba.dubbo.rpc.cluster.support.ClusterUtils;
+import com.alibaba.dubbo.rpc.cluster.support.FailoverClusterInvoker;
+import com.alibaba.dubbo.rpc.cluster.support.wrapper.MockClusterInvoker;
+import com.alibaba.dubbo.rpc.listener.ListenerInvokerWrapper;
 import com.alibaba.dubbo.rpc.protocol.InvokerWrapper;
 import com.alibaba.dubbo.rpc.support.RpcUtils;
 
@@ -61,6 +64,8 @@ import java.util.Set;
  * 订阅时和服务提供方数据有变动时回调消费方的NotifyListener服务的notify方法，
  * 回调接口传入所有服务的提供方的url地址然后将urls转化为invokers, 也就是refer应用远程服务
  *
+ * 一个消费者对应一个RegistryDirectory实例
+ *
  */
 public class RegistryDirectory<T> extends AbstractDirectory<T> implements NotifyListener {
 
@@ -81,25 +86,34 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      */
     private static final ConfiguratorFactory configuratorFactory = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class).getAdaptiveExtension();
     /**
-     * 提供者URL#getServiceKey
+     * URL#getServiceKey
+     * @see AbstractDirectory#url
+     * com.alibaba.dubbo.registry.RegistryService
+     *
      */
     private final String serviceKey; // Initialization at construction time, assertion not null
     /**
      * 提供者Class
+     * com.xxx.DemoService class对象
+     *
      */
     private final Class<T> serviceType; // Initialization at construction time, assertion not null
 
     /**
      * 消费者URL的配置项 Map
+     * 存储的是消费者需要消费的服务的一些参数
      */
     private final Map<String, String> queryMap; // Initialization at construction time, assertion not null
 
     /**
      * 原始的目录 URL
+     * 但是parameters都重置为此消费者信息(queryMap)
+     * zookeeper://127.0.0.1:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-consumer&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1966&qos.port=33333&register.ip=192.168.0.107&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589121627232&version=1.0_local
      */
     private final URL directoryUrl; // Initialization at construction time, assertion not null, and always assign non null value
     /**
      * 存储的是服务提供方的所有方法
+     * 即serviceType对应的接口中的所有方法
      */
     private final String[] serviceMethods;
     /**
@@ -109,11 +123,13 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     /**
      * 协议
+     * @see com.alibaba.dubbo.config.Protocol$Adpative
      */
     private Protocol protocol; // Initialization at the time of injection, the assertion is not null
 
     /**
      * 注册中心
+     * 如ZookeeperRegistry
      */
     private Registry registry; // Initialization at the time of injection, the assertion is not null
 
@@ -124,10 +140,20 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     /**
      * 覆盖目录的url
-     * 提供者URL，但是parameters都重置为此消费者信息(queryMap)
+     * 但是parameters都重置为此消费者信息(queryMap)
+     * 初始化时是以下值。
+     * zookeeper://127.0.0.1:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-consumer&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1966&qos.port=33333&register.ip=192.168.0.107&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589121627232&version=1.0_local
+     * @see RegistryDirectory#notify(java.util.List)
+     * 注册中心中如果有动态配置覆盖规则 则会重新赋值overrideDirectoryUrl
+     * @see RegistryDirectory#mergeUrl(com.alibaba.dubbo.common.URL)
+     * 将额外参数设置为合并后的提供者的参数
      */
     private volatile URL overrideDirectoryUrl; // Initialization at construction time, assertion not null, and always assign non null value
 
+    /**
+     * 消费者的URL
+     * consumer://192.168.0.107/com.alibaba.dubbo.demo.DemoService?application=demo-consumer&category=consumers&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1974&qos.port=33333&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589121876155&version=1.0_local
+     */
     private volatile URL registeredConsumerUrl;
 
     /**
@@ -141,14 +167,25 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     // Map<url, Invoker> cache service url to invoker mapping.
     /**
-     * key 为提供者url.toFullString()
-     * value 提供者url对应的Invoker，InvokerDelegate实例
+     * 缓存消费者消费的invoker实例，
+     * key 消费者消费的提供者url.toFullString()
+     * value 消费者消费的提供者url对应的Invoker，{@link com.alibaba.dubbo.registry.integration.RegistryDirectory.InvokerDelegate}
      */
     private volatile Map<String, Invoker<T>> urlInvokerMap; // The initial value is null and the midway may be assigned to null, please use the local variable reference
 
     // Map<methodName, Invoker> cache service method to invokers mapping.
     /**
      * 提供者方法名与提供者url对应的Invoker之间的映射
+     * key:提供者中的方法名
+     * value:{@link com.alibaba.dubbo.registry.integration.RegistryDirectory.InvokerDelegate}
+     * 方法名与invoker可能是一对多关系，
+     * 因为一般情况下我们的服务都会存在集群，集群中有多个服务提供者
+     *
+     * 当{@link RegistryDirectory#multiGroup} 为true时，表明消费者指定了多个服务分组
+     * 那么此时的
+     * key:group
+     * value:{@link MockClusterInvoker}实例
+     * @see RegistryDirectory#toMergeMethodInvokerMap(java.util.Map)
      *
      */
     private volatile Map<String, List<Invoker<T>>> methodInvokerMap; // The initial value is null and the midway may be assigned to null, please use the local variable reference
@@ -196,7 +233,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
      * 8.timeout=1000表示满足前面条件的timeout参数覆盖为1000
      *
      * dubbo-admin上更新路由规则或者通过是参数"override://"协议实现的，dubbo-admin的使用方法可以查看官方文档。
-     * override协议的URL会覆盖更新本地URL中对应的参数。如果是"empty://"协议的URL，则会情况本地的配置，这里调用
+     * override协议的URL会覆盖更新本地URL中对应的参数。如果是"empty://"协议的URL，则会清空本地的配置，这里调用
      * 会调用Configurator接口来实现该功能。
      *
      * @param urls Contract:
@@ -428,7 +465,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             this.urlInvokerMap = newUrlInvokerMap;
             try {
                 // Close the unused Invokerx
-                // 销毁无用 Invoker
+                // 销毁无用 Invoker，关闭对应的客户端连接。
                 destroyUnusedInvokers(oldUrlInvokerMap, newUrlInvokerMap);
             } catch (Exception e) {
                 logger.warn("destroyUnusedInvokers error. ", e);
@@ -505,7 +542,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 if (Constants.EMPTY_PROTOCOL.equals(url.getProtocol())) {
                     continue;
                 }
-                // 获得路由规则
+                // 获得路由规则，可以根据URL中的参数router获取对应的路由工厂routerFactory
                 String routerType = url.getParameter(Constants.ROUTER_KEY);
                 if (routerType != null && routerType.length() > 0) {
                     // 设置协议
@@ -606,7 +643,6 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                     }
                     if (enabled) {
                         /*
-                         * 先使用DubboProtocol的refer方法，
                          * 这一步会依次调用ProtocolFilterWrapper，ProtocolListenerWrapper，DubboProtocol中的refer方法。
                          * 经过两个Wrapper中，会添加对应的InvokerListener并构建Invoker Filter链，
                          * 在DubboProtocol中会创建一个DubboInvoker对象，该Invoker对象持有服务Class，providerUrl，负责和服务提供端通信的ExchangeClient。
@@ -682,7 +718,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         if (routers != null) {
             for (Router router : routers) {
                 // If router's url not null and is not route by runtime,we filter invokers here
-                // 如果获取到的runtime为true则在com.alibaba.dubbo.rpc.cluster.directory.AbstractDirectory.list处路由
+                // 如果获取到的runtime为true则在消费者每次调动时进行路由即com.alibaba.dubbo.rpc.cluster.directory.AbstractDirectory.list处路由
                 if (router.getUrl() != null && !router.getUrl().getParameter(Constants.RUNTIME_KEY, false)) {
                     invokers = router.route(invokers, getConsumerUrl(), invocation);
                 }
@@ -704,7 +740,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         List<Invoker<T>> invokersList = new ArrayList<Invoker<T>>();
         if (invokersMap != null && invokersMap.size() > 0) {
             for (Invoker<T> invoker : invokersMap.values()) {
-                // 获取 methods 参数
+                // 获取提供者 methods 参数
                 String parameter = invoker.getUrl().getParameter(Constants.METHODS_KEY);
                 if (parameter != null && parameter.length() > 0) {
                     // 切分 methods 参数值，得到方法名数组
@@ -739,7 +775,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 if (methodInvokers == null || methodInvokers.isEmpty()) {
                     methodInvokers = newInvokersList;
                 }
-                // 进行方法级别路由
+                //进行方法级别路由
                 newMethodInvokerMap.put(method, route(methodInvokers, method));
             }
         }
@@ -947,6 +983,12 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
          */
         private URL providerUrl;
 
+        /**
+         *
+         * @param invoker {@link ListenerInvokerWrapper}
+         * @param url 提供者URL消费者配置以及注册中心配置规则后的URL {@link RegistryDirectory#mergeUrl(com.alibaba.dubbo.common.URL)}
+         * @param providerUrl 提供者URL
+         */
         public InvokerDelegate(Invoker<T> invoker, URL url, URL providerUrl) {
             super(invoker, url);
             this.providerUrl = providerUrl;

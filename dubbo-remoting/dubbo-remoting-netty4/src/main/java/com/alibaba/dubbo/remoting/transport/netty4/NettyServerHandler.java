@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NettyServerHandler extends ChannelDuplexHandler {
 
     /**
-     * 连接该服务器的通道数 key为ip:port
+     * 连接该服务器的通道 key为消费者ip:port
      */
     private final Map<String, Channel> channels = new ConcurrentHashMap<String, Channel>();
 
@@ -47,6 +47,7 @@ public class NettyServerHandler extends ChannelDuplexHandler {
 
     /**
      * 通道处理器
+     * @see NettyServer
      */
     private final ChannelHandler handler;
 

@@ -44,7 +44,9 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractDirectory.class);
 
     /**
-     * 提供者url对象
+     * url对象
+     * zookeeper://127.0.0.1:2181/com.alibaba.dubbo.registry.RegistryService?application=demo-consumer&dubbo=2.0.2&pid=1938&qos.port=33333&refer=application%3Ddemo-consumer%26check%3Dfalse%26dubbo%3D2.0.2%26interface%3Dcom.alibaba.dubbo.demo.DemoService%26methods%3DsayHello%26pid%3D1938%26qos.port%3D33333%26register.ip%3D192.168.0.107%26retries%3D0%26revision%3D1.0_local%26sayHello.async%3Dtrue%26side%3Dconsumer%26timeout%3D4000000%26timestamp%3D1589121030888%26version%3D1.0_local&retry.period=111111&timestamp=1589121030934
+     * 其中refer key 存储的是消费者需要消费的服务的一些参数
      */
     private final URL url;
 
@@ -55,11 +57,13 @@ public abstract class AbstractDirectory<T> implements Directory<T> {
 
     /**
      * 消费者端url
+     * consumer://192.168.0.107/com.alibaba.dubbo.demo.DemoService?application=demo-consumer&category=providers,configurators,routers&check=false&dubbo=2.0.2&interface=com.alibaba.dubbo.demo.DemoService&methods=sayHello&pid=1974&qos.port=33333&retries=0&revision=1.0_local&sayHello.async=true&side=consumer&timeout=4000000&timestamp=1589121876155&version=1.0_local
      */
     private volatile URL consumerUrl;
 
     /**
      * 路由集合
+     * 路由规则 决定一次 dubbo 服务调用的目标服务器，分为条件路由规则和脚本路由规则，并且支持可扩展
      */
     private volatile List<Router> routers;
 

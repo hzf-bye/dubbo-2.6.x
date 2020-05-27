@@ -32,7 +32,7 @@ import java.util.List;
  * Usually used for non-idempotent write operations
  *
  * <a href="http://en.wikipedia.org/wiki/Fail-fast">Fail-fast</a>
- * 失败安全，出现异常时，快速返回异常结果，不做任何重试。
+ * 快速失败，出现异常时，快速返回异常结果，不做任何重试。
  * 该容错机制对请求做负载均衡，通常使用在非幂等接口的调用上。
  * 该机制受网络抖动的影响较大。
  *

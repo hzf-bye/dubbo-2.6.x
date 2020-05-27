@@ -52,6 +52,8 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
     // Registry Collection Map<RegistryAddress, Registry>
     /**
      * Registry 集合
+     * key : {@link URL#toServiceStringWithoutResolving()} 生成的，例如 zookeeper://127.0.0.1:2181/com.alibaba.dubbo.registry.RegistryService
+     * value : {@link com.alibaba.dubbo.registry.zookeeper.ZookeeperRegistry}
      */
     private static final Map<String, Registry> REGISTRIES = new ConcurrentHashMap<String, Registry>();
 

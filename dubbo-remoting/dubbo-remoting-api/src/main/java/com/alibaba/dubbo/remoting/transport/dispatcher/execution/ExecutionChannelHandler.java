@@ -75,7 +75,7 @@ public class ExecutionChannelHandler extends WrappedChannelHandler {
                 throw new ExecutionException(message, channel, getClass() + " error when process received event.", t);
             }
         } else {
-            // 如果消息不是request类型，则直接处理
+            // 响应和其它连接事件、断开事件、心跳事件等消息在I/O线程池上执行
             handler.received(channel, message);
         }
     }

@@ -33,10 +33,19 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractZookeeperClient.class);
 
+    /**
+     * 注册中心URL对象
+     */
     private final URL url;
 
+    /**
+     * 状态监听器集合
+     */
     private final Set<StateListener> stateListeners = new CopyOnWriteArraySet<StateListener>();
 
+    /**
+     * 客户端监听器集合
+     */
     private final ConcurrentMap<String, ConcurrentMap<ChildListener, TargetChildListener>> childListeners = new ConcurrentHashMap<String, ConcurrentMap<ChildListener, TargetChildListener>>();
 
     private volatile boolean closed = false;
@@ -50,6 +59,11 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
         return url;
     }
 
+    /**
+     *
+     * @param path dubbo/org.apache.dubbo.demo.DemoService/providers/dubbo%3A%2F%2F192.168.0.105%3A20880%2Forg.apache.dubbo.demo.DemoService%3Fanyhost%3Dtrue%26application%3Decho-provider%26dubbo%3D2.0.2%26generic%3Dfalse%26interface%3Dcom.alibaba.dubbo.samples.echo.api.EchoService%26methods%3Decho1%2Cecho%26pid%3D15700%26side%3Dprovider%26timestamp%3D1572966656788
+     * @param ephemeral
+     */
     @Override
     public void create(String path, boolean ephemeral) {
         if (!ephemeral) {
@@ -57,6 +71,7 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
                 return;
             }
         }
+        //递归，分别创建节点 /dubbo /dubbo/org.apache.dubbo.demo.DemoService   /dubbo/org.apache.dubbo.demo.DemoService/providers
         int i = path.lastIndexOf('/');
         if (i > 0) {
             create(path.substring(0, i), false);

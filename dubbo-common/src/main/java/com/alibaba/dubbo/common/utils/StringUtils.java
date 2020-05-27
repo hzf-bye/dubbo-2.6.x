@@ -383,6 +383,7 @@ public final class StringUtils {
         return buf.toString();
     }
 
+
     public static String camelToSplitName(String camelName, String split) {
         if (camelName == null || camelName.length() == 0) {
             return camelName;

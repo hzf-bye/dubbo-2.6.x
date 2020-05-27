@@ -83,6 +83,11 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
         beanDefinition.setBeanClass(beanClass);
         beanDefinition.setLazyInit(false);
         String id = element.getAttribute("id");
+        /**
+         * 获取beanName
+         * 当有标签中有id元素时，将元素id对应的值作为beanName
+         * 否则将interface元素作为beanName，即提供者的包名.类名
+         */
         if ((id == null || id.length() == 0) && required) {
             String generatedBeanName = element.getAttribute("name");
             if (generatedBeanName == null || generatedBeanName.length() == 0) {
@@ -238,6 +243,7 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
                                     reference = new RuntimeBeanReference(invokeRef);
                                     beanDefinition.getPropertyValues().addPropertyValue("oninvokeMethod", invokeRefMethod);
                                 } else {
+                                    //ref所指向的具体的beanName必须是单例的
                                     if ("ref".equals(property) && parserContext.getRegistry().containsBeanDefinition(value)) {
                                         BeanDefinition refBean = parserContext.getRegistry().getBeanDefinition(value);
                                         if (!refBean.isSingleton()) {
@@ -247,6 +253,7 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
                                     reference = new RuntimeBeanReference(value);
                                 }
                                 //属性值设置到beanDefinition中。作为此bean的属性
+                                //比如 当前propertyName为ref, reference为其引用的bean，那么当spring创建serviceBean时，就会自动出入ref所应用的bean
                                 beanDefinition.getPropertyValues().addPropertyValue(propertyName, reference);
                             }
                         }
@@ -451,6 +458,12 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
     @Override
     public BeanDefinition parse(Element element, ParserContext parserContext) {
         return parse(element, parserContext, beanClass, required);
+    }
+
+    public static void main(String[] args) {
+
+        Method[] methods = ServiceBean.class.getMethods();
+        System.out.println();
     }
 
 }

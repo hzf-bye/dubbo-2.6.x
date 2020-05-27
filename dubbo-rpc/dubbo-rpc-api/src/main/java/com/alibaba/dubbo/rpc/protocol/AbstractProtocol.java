@@ -39,14 +39,19 @@ public abstract class AbstractProtocol implements Protocol {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     /**
-     * key com.alibaba.dubbo.rpc.protocol.AbstractProtocol#serviceKey(com.alibaba.dubbo.common.URL)
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#export(com.alibaba.dubbo.rpc.Invoker)
+     * key 提供者URl生成的{@link com.alibaba.dubbo.rpc.protocol.AbstractProtocol#serviceKey(com.alibaba.dubbo.common.URL)}
      * value DubboExporter
      */
     protected final Map<String, Exporter<?>> exporterMap = new ConcurrentHashMap<String, Exporter<?>>();
 
     //TODO SOFEREFENCE
     /**
-     * 缓存所有提供者对应的Invoker
+     * 缓存所有消费者所消费的提供者对应的Invoker
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboProtocol#refer(java.lang.Class, com.alibaba.dubbo.common.URL)
+     * 当消费端发起远程调用你的时候，就是根据集群容错和负载均衡算法以及路由规则从invokers列表中选择一个进行调用，
+     * 当服务提供者宕机的时候，注册中心会通知更新这个列表
+     * @see com.alibaba.dubbo.rpc.protocol.dubbo.DubboInvoker 实例
      */
     protected final Set<Invoker<?>> invokers = new ConcurrentHashSet<Invoker<?>>();
 

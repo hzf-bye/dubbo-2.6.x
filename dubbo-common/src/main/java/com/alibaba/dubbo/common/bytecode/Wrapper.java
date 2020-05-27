@@ -115,85 +115,10 @@ public abstract class Wrapper {
     }
 
     /**
-     * 该方法有点长，大致可以分为几个步骤：
-     *
-     * 1.初始化了c1、c2、c3、pts、ms、mns、dmns变量，向 c1、c2、c3 中添加方法定义和类型转换代码。
-     * 2.为 public 级别的字段生成条件判断取值与赋值代码
-     * 3.为定义在当前类中的方法生成判断语句，和方法调用语句。
-     * 4.处理 getter、setter 以及以 is/has/can 开头的方法。处理方式是通过正则表达式获取方法类型（get/set/is/...），以及属性名。之后为属性名生成判断语句，然后为方法生成调用语句。
-     * 5.通过 ClassGenerator 为刚刚生成的代码构建 Class 类，并通过反射创建对象。ClassGenerator 是 Dubbo 自己封装的，
-     *  该类的核心是 toClass() 的重载方法 toClass(ClassLoader, ProtectionDomain)，该方法通过 javassist 构建 Class。
-     *
-     *  下面的 $1,$2,$3分别代表方法中的第1个，第二个，都三个参数
-     *
-     *
-     *  最后生成的类 大概是：
-     *  com.alibaba.dubbo.config.spring.impl.HelloServiceImpl举例
-     *  public class Wrapper11 extends Wrapper {
-     *     public static String[] pns;
-     *     public static Map pts;
-     *     public static String[] mns; // all method name array.
-     *     public static String[] dmns;
-     *     public static Class[] mts0;
-     *
-     *     public String[] getPropertyNames() {
-     *         return pns;
-     *     }
-     *
-     *     public boolean hasProperty(String n) {
-     *         return pts.containsKey($1);
-     *     }
-     *
-     *     public Class getPropertyType(String n) {
-     *         return (Class) pts.get($1);
-     *     }
-     *
-     *     public String[] getMethodNames() {
-     *         return mns;
-     *     }
-     *
-     *     public String[] getDeclaredMethodNames() {
-     *         return dmns;
-     *     }
-     *
-     *     public void setPropertyValue(Object o, String n, Object v) {
-     *         dubbo.provider.hello.service.impl.HelloServiceImpl w;
-     *         try {
-     *             w = ((dubbo.provider.hello.service.impl.HelloServiceImpl) $1);
-     *         } catch (Throwable e) {
-     *             throw new IllegalArgumentException(e);
-     *         }
-     *         throw new com.alibaba.dubbo.common.bytecode.NoSuchPropertyException("Not found property \"" + $2 + "\" filed or setter method in class dubbo.provider.hello.service.impl.HelloServiceImpl.");
-     *     }
-     *
-     *     public Object getPropertyValue(Object o, String n) {
-     *         dubbo.provider.hello.service.impl.HelloServiceImpl w;
-     *         try {
-     *             w = ((dubbo.provider.hello.service.impl.HelloServiceImpl) $1);
-     *         } catch (Throwable e) {
-     *             throw new IllegalArgumentException(e);
-     *         }
-     *         throw new com.alibaba.dubbo.common.bytecode.NoSuchPropertyException("Not found property \"" + $2 + "\" filed or setter method in class dubbo.provider.hello.service.impl.HelloServiceImpl.");
-     *     }
-     *
-     *     public Object invokeMethod(Object o, String n, Class[] p, Object[] v) throws java.lang.reflect.InvocationTargetException {
-     *         dubbo.provider.hello.service.impl.HelloServiceImpl w;
-     *         try {
-     *             w = ((dubbo.provider.hello.service.impl.HelloServiceImpl) $1);
-     *         } catch (Throwable e) {
-     *             throw new IllegalArgumentException(e);
-     *         }
-     *         try {
-     *             if ("sayHello".equals($2) && $3.length == 0) {
-     *                 w.sayHello();
-     *                 return null;
-     *             }
-     *         } catch (Throwable e) {
-     *             throw new java.lang.reflect.InvocationTargetException(e);
-     *         }
-     *         throw new com.alibaba.dubbo.common.bytecode.NoSuchMethodException("Not found method \"" + $2 + "\" in class dubbo.provider.hello.service.impl.HelloServiceImpl.");
-     *     }
-     * }
+     * 以{@link DemoServiceImpl}
+     * 生成的wrapper类
+     * @see Wrapper1
+     * 其他方法忽略，主要看invokeMethod
      */
     private static Wrapper makeWrapper(Class<?> c) {
         // 检测 c 是否为基本类型，若是则抛出异常
