@@ -263,7 +263,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
                 setPath(beanName);
             }
         }
-        //如果不是延迟暴露则执行export()方法
+        //如果需要延迟暴露则执行export()方法，的delay > 0
         if (!isDelay()) {
             export();
         }

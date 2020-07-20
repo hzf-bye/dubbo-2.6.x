@@ -66,11 +66,13 @@ public class DubboShutdownHook extends Thread {
             return;
         }
         // destroy all the registries
+        //关闭在zookeeper上面注册的服务
         AbstractRegistryFactory.destroyAll();
         // destroy all the protocols
         ExtensionLoader<Protocol> loader = ExtensionLoader.getExtensionLoader(Protocol.class);
         for (String protocolName : loader.getLoadedExtensions()) {
             try {
+                //注销 Protocol
                 Protocol protocol = loader.getLoadedExtension(protocolName);
                 if (protocol != null) {
                     protocol.destroy();

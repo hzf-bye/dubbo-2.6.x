@@ -79,8 +79,16 @@ public class NettyClient extends AbstractClient {
         bootstrap = new Bootstrap();
         // 设置可选项
         bootstrap.group(nioEventLoopGroup)
+                //tcp层keepalive
                 .option(ChannelOption.SO_KEEPALIVE, true)
+                //是否启用nagle算法，true是关闭nagle算法
+                /*
+                 * Nagle 算法要求，当一个 TCP 连接中有在传数据（已经发出但还未确认的数据）时，
+                 * 小于 MSS 的报文段就不能被发送，直到所有的在传数据都收到了 ACK。
+                 * 同时收到 ACK 后，TCP 还不会马上就发送数据，会收集小包合并一起发送。
+                 */
                 .option(ChannelOption.TCP_NODELAY, true)
+                //ByteBuf分配器， PooledByteBufAllocator.DEFAULT
                 .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 //.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, getTimeout())
                 .channel(NioSocketChannel.class);

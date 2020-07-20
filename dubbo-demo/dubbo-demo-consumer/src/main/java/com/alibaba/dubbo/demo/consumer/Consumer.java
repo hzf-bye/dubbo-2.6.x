@@ -17,15 +17,10 @@
 package com.alibaba.dubbo.demo.consumer;
 
 import com.alibaba.dubbo.demo.DemoService;
-import com.alibaba.dubbo.demo.HzfService;
 import com.alibaba.dubbo.remoting.exchange.ResponseCallback;
-import com.alibaba.dubbo.remoting.exchange.ResponseFuture;
 import com.alibaba.dubbo.rpc.RpcContext;
 import com.alibaba.dubbo.rpc.protocol.dubbo.FutureAdapter;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 public class Consumer {
 
@@ -65,7 +60,7 @@ public class Consumer {
 //
 //        String message = echoService.echo("hello world"); // call remote method
 //        System.out.println(message);
-//        System.out.println(System.in.read());
+        System.out.println(System.in.read());
 
 
     }

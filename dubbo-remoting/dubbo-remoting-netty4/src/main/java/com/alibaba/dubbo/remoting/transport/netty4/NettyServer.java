@@ -141,7 +141,16 @@ public class NettyServer extends AbstractServer implements Server {
         // 设置ventLoopGroup还有可选项
         bootstrap.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
+                //是否启用nagle算法，true是关闭nagle算法
+                /*
+                 * Nagle 算法要求，当一个 TCP 连接中有在传数据（已经发出但还未确认的数据）时，
+                 * 小于 MSS 的报文段就不能被发送，直到所有的在传数据都收到了 ACK。
+                 * 同时收到 ACK 后，TCP 还不会马上就发送数据，会收集小包合并一起发送。
+                 */
                 .childOption(ChannelOption.TCP_NODELAY, Boolean.TRUE)
+                //是否可以重用端口
+                //服务端主动断开连接以后，需要等 2 个 MSL 以后才最终释放这个连接，重启以后要绑定同一个端口，默认情况下，操作系统的实现都会阻止新的监听套接字绑定到这个端口上。
+                //启用 SO_REUSEADDR 套接字选项可以解除这个限制
                 .childOption(ChannelOption.SO_REUSEADDR, Boolean.TRUE)
                 .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .childHandler(new ChannelInitializer<NioSocketChannel>() {

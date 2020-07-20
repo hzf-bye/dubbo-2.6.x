@@ -87,7 +87,7 @@ final class NettyCodecAdapter {
             // 获得netty通道
             NettyChannel channel = NettyChannel.getOrAddChannel(ch, url, handler);
             try {
-                // 编码
+                // 将msg编码成ByteBuf
                 codec.encode(channel, buffer, msg);
             } finally {
                 // 检测通道是否活跃

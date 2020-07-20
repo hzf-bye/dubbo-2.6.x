@@ -636,6 +636,7 @@ public abstract class AbstractRegistry implements Registry {
     /**
      * 该方法在JVM关闭时调用，进行取消注册和订阅的操作。
      * 具体逻辑就是调用了unregister和unsubscribe方法。
+     * @see com.alibaba.dubbo.config.DubboShutdownHook#destroyAll()
      */
     @Override
     public void destroy() {
