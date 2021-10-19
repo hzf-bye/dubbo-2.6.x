@@ -39,12 +39,8 @@ public class SpiExtensionFactory implements ExtensionFactory {
             ExtensionLoader<T> loader = ExtensionLoader.getExtensionLoader(type);
             //如果缓存的扩展点不空，则直接返回Adaptive实例
             if (!loader.getSupportedExtensions().isEmpty()) {
-                /*
-                 * 其实这里返回的实例还是AdaptiveExtensionFactory，因为AdaptiveExtensionFactory
-                 * 中有@Adaptive注解，
-                 * 因此AdaptiveExtensionFactory的实例早已经被缓存ExtensionFactory
-                 * 对应的ExtensionLoader实例的cachedAdaptiveInstance属性中
-                 */
+
+                //获取自适应扩展类
                 return loader.getAdaptiveExtension();
             }
         }

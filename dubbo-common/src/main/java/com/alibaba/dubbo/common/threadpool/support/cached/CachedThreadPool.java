@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
  * the upcoming request.
  *
  * @see java.util.concurrent.Executors#newCachedThreadPool()
- * 创建一个自适应线程池，当现场空闲1分钟时，线程会被回收，当新的请求到来时，会创建新的线程。
+ * 创建一个自适应线程池，当线程空闲1分钟时，线程会被回收，当新的请求到来时，会创建新的线程。
  */
 public class CachedThreadPool implements ThreadPool {
 

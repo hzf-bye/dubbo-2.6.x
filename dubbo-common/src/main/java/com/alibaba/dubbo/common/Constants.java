@@ -696,17 +696,17 @@ public class Constants {
     public static final String EXECUTOR_SERVICE_COMPONENT_KEY = ExecutorService.class.getName();
 
     /**
-     * 返回调用方式 nativejava
+     * 泛化调用方式 nativejava
      */
     public static final String GENERIC_SERIALIZATION_NATIVE_JAVA = "nativejava";
 
     /**
-     * 返回调用方式 true
+     * 泛化调用方式 true
      */
     public static final String GENERIC_SERIALIZATION_DEFAULT = "true";
 
     /**
-     * 返回调用方式 bean
+     * 泛化调用方式 bean
      */
     public static final String GENERIC_SERIALIZATION_BEAN = "bean";
 

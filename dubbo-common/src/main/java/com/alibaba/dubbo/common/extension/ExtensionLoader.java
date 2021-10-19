@@ -149,7 +149,7 @@ public class ExtensionLoader<T> {
      *
      * 不包含如下两种类型：
      *  1. 自适应拓展实现类。对应的实现类中带有@Adaptive注解的类。例如 {@link com.alibaba.dubbo.common.extension.factory.AdaptiveExtensionFactory}
-     *  2. 带唯一参数为拓展接口的构造方法的实现类，或者说拓展 Wrapper 实现类。例如，{@link com.alibaba.dubbo.rpc.protocol.ProtocolFilterWrapper}
+     *  2. 包装扩展类。带唯一参数为拓展接口的构造方法的实现类，或者说拓展 Wrapper 实现类。例如，{@link com.alibaba.dubbo.rpc.protocol.ProtocolFilterWrapper}
      *   拓展 Wrapper 实现类，会添加到 {@link #cachedWrapperClasses} 中
      *
      * 通过 {@link ExtensionLoader#getExtensionClasses()}{@link #loadExtensionClasses} 加载
@@ -385,6 +385,7 @@ public class ExtensionLoader<T> {
                     && !names.contains(Constants.REMOVE_VALUE_PREFIX + name)) {
                 //在配置中把自定义的配置放在自动激活的扩展对象前面，可以让自定义的配置先加载
                 //例如 <dubbo:service filter="demo,default,demo2" /> ，则 DemoFilter 就会放在默认的过滤器前面。
+                //即default前面的filter会放在默认的过滤器前面。
                 //@6
                 if (Constants.DEFAULT_KEY.equals(name)) {
                     if (!usrs.isEmpty()) {

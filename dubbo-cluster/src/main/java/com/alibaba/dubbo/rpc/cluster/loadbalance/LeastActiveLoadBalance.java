@@ -66,7 +66,7 @@ public class LeastActiveLoadBalance extends AbstractLoadBalance {
         int leastCount = 0;
         // leastIndexs 用于记录具有相同“最小活跃数”的 Invoker 在 invokers 列表中的下标信息
         int[] leastIndexs = new int[length];
-        // 总的权重
+        // 具有相同“最小活跃数”的服务者提供者的总的权重
         int totalWeight = 0;
         // 第一个最小活跃数的 Invoker 权重值，用于与其他具有相同最小活跃数的 Invoker 的权重进行对比，
         // 以检测是否“所有具有相同最小活跃数的 Invoker 的权重”均相等
